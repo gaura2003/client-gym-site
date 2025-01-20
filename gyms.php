@@ -47,8 +47,8 @@ $gyms = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $cityStmt = $db->query("SELECT DISTINCT city FROM gyms WHERE status = 'active'");
 $cities = $cityStmt->fetchAll(PDO::FETCH_COLUMN);
 
+include 'includes/navbar.php';
 ?>
-<script src="https://cdn.tailwindcss.com"></script>
 <div class="container mx-auto px-4 py-8">
     <!-- Search and Filters -->
     <div class="mb-8 bg-white p-6 rounded-lg shadow">

@@ -82,6 +82,11 @@
                                 <a href="../gym/bookings.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Schedules</a>
                                 <a href="../gym/member_list.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Members</a>
                                 <a href="../gym/earning-history.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Earn History</a>
+                            <?php else : ?>
+                                <a href="/gym/" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                                <a href="/gym/view_membership.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Membership Plans</a>
+                                <a href="/gym/contact.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Contact</a>
+                                <a href="/gym/about-us.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">About Us</a>
 
                             <?php endif; ?>
                     </div>
@@ -102,6 +107,8 @@
                                 <?php endif; ?>
                             </a>
                         <?php else: ?>
+
+                            <a href="/gym/register.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Sign Up</a>
                             <a href="/gym/login.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Login</a>
                         <?php endif; ?>
                     </div>

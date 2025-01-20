@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="flex min-h-screen">
         <!-- Left Side - Image and Motivation -->
         <div class="hidden lg:flex lg:w-1/2 bg-cover bg-center" 
-             style="background-image: url('assets/images/gym-background.jpg')">
+             style="background-image: url('assets/image/gymbg.jpg')">
             <div class="w-full flex items-center justify-center bg-black bg-opacity-50">
                 <div class="px-12 text-white">
                     <h1 class="text-5xl font-bold mb-8">Transform Your Life</h1>
@@ -131,7 +131,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </button>
                     </div>
                 </form>
-
+                <a href="./gym/register.html"  class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button >
+                            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            Register as GYM Partner
+                        </button>
+                </a>
                 <div class="text-center">
                     <p class="text-sm text-gray-600">
                         Already have an account? 
