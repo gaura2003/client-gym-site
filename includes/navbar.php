@@ -70,7 +70,7 @@
                                 <a href="/gym/admin/see-gym-earn.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Gym Earnings</a>
                             <?php elseif ($role === 'member' && isset($_SESSION['user_id'])): ?>
                                 <a href="/gym/dashboard.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
-                                <a href="/gym/schedule.php?gym_id=<?php echo $membership['gym_id']; ?>" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Schedule Workout</a>
+                                <a href="/gym/schedule-history.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Schedule History</a>
                                 <a href="/gym/user_schedule.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">My Schedules</a>
                                 <a href="/gym/view_membership.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Membership</a>
                                 <a href="/gym/payment_history.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Payment History</a>
@@ -128,7 +128,7 @@
                     <a href="/gym/admin/see-gym-earn.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Gym Earnings</a>
                 <?php elseif ($role === 'member'): ?>
                     <a href="/gym/dashboard.php" class="block text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
-                    <a href="/gym/schedule.php?gym_id=<?php echo $membership['gym_id']; ?>" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Schedule Workout</a>
+                    <a href="/gym/schedule-history.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Schedule History</a>
                     <a href="/gym/user_schedule.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">My Schedules</a>
                     <a href="/gym/view_membership.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Membership</a>
                     <a href="/gym/payment_history.php" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Payment History</a>

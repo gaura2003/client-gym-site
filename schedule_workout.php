@@ -62,7 +62,7 @@
 
     // Get user's active membership with proper table joins
     $membershipStmt = $conn->prepare(query: "
-    SELECT um.*, gmp.tier as plan_name, gmp.inclusions, gmp.duration,
+    SELECT um.*, gmp.tier as plan_name, gmp.inclusions, gmp.duration, gmp.price,
            g.name as gym_name, g.address, p.status as payment_status
     FROM user_memberships um
     JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
@@ -72,9 +72,37 @@
     AND um.status = 'active'
     AND p.status = 'completed'
     AND um.end_date >= CURRENT_DATE()
+
 ");
     $membershipStmt->execute(params: [$_SESSION['user_id']]);
     $activeMembership = $membershipStmt->fetch(mode: PDO::FETCH_ASSOC);
+
+    $monthlyPriceActiveMembership = null;
+
+if ($activeMembership) {
+    $durationMonths = 1; // Default to 1 month if duration isn't specified
+    switch (strtolower($activeMembership['duration'])) {
+        case 'monthly':
+            $durationMonths = 1;
+            break;
+        case 'quarterly':
+            $durationMonths = 3;
+            break;
+        case 'half-yearly':
+            $durationMonths = 6;
+            break;
+        case 'yearly':
+            $durationMonths = 12;
+            break;
+    }
+    $monthlyPriceActiveMembership = $activeMembership['price'] / $durationMonths;
+}
+
+// Fetch distinct cities
+$citiesQuery = "SELECT DISTINCT city FROM gyms WHERE status = 'active' ORDER BY city ASC";
+$citiesStmt = $conn->prepare($citiesQuery);
+$citiesStmt->execute();
+$cities = $citiesStmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Modified gym search query to include price filtering
     $searchQuery = "
@@ -84,21 +112,21 @@
     WHERE g.status = 'active'
     AND gmp.duration = 'Monthly'
     AND (
-        g.name LIKE :search
-        OR g.city LIKE :city
-        OR g.state LIKE :state
+        (:search = '' OR g.name LIKE :search)
+        AND (:city = '' OR g.city = :city)
+        AND (:state = '' OR g.state LIKE :state)
     )
     ORDER BY g.rating DESC, g.name ASC
 ";
 
-    $stmt = $conn->prepare(query: $searchQuery);
-    $stmt->execute(params: [
-        ':search' => "%{$search}%",
-        ':city'   => "%{$searchCity}%",
-        ':state'  => "%{$searchState}%",
-    ]);
+$stmt = $conn->prepare($searchQuery);
+$stmt->execute([
+    ':search' => $search ? "%{$search}%" : '',
+    ':city'   => $searchCity ?: '',
+    ':state'  => $searchState ? "%{$searchState}%" : '',
+]);
 
-    $gyms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+  $gyms = $stmt->fetchAll(PDO::FETCH_ASSOC);
     // Fetching last schedule data to display and update
 $scheduleStmt = $conn->prepare("
 SELECT s.id, s.activity_type, s.gym_id, s.start_date, s.end_date, s.start_time, s.notes
@@ -182,10 +210,18 @@ if ($isSlotAvailable) {
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">City</label>
-                <input type="text" name="city" value="<?php echo htmlspecialchars($searchCity); ?>"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-            </div>
+    <label class="block text-sm font-medium text-gray-700">City</label>
+    <select name="city" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+        <option value="">All Cities</option>
+        <?php foreach ($cities as $city): ?>
+            <option value="<?php echo htmlspecialchars($city['city']); ?>" 
+                <?php echo $searchCity === $city['city'] ? 'selected' : ''; ?>>
+                <?php echo htmlspecialchars($city['city']); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div>
+
             <div>
                 <label class="block text-sm font-medium text-gray-700">State</label>
                 <input type="text" name="state" value="<?php echo htmlspecialchars($searchState); ?>"
@@ -228,18 +264,17 @@ if ($isSlotAvailable) {
                         </div>
                     </div>
                 <?php endif; ?>
-<?php if ($activeMembership): ?>
+<?php if ($activeMembership && $gym['monthly_price'] <=  $monthlyPriceActiveMembership): ?>
                     <div class="flex space-x-2 mt-4">
     <button onclick="selectGymForUpdate('<?php echo $gym['gym_id']; ?>', '<?php echo htmlspecialchars($gym['name']); ?>')"
             class="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
         Select For Update
     </button>
-
 </div>
                 <?php else: ?>
                     <div class="space-y-2">
-                        <p class="text-sm text-gray-600">Monthly Price: $<?php echo number_format($gym['monthly_price'], 2); ?></p>
-                        <a href="membership.php?gym_id=<?php echo $gym['gym_id']; ?>"
+                        <p class="text-sm text-gray-600">Monthly Price: ₹<?php echo number_format($gym['monthly_price'], 2); ?></p>
+                        <a href="gym_details.php?gym_id=<?php echo $gym['gym_id']; ?>"
                             class="block w-full text-center bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                             Get Membership
                         </a>
@@ -296,7 +331,7 @@ if ($isSlotAvailable) {
     <!-- Notes -->
     <div>
         <label class="block text-sm font-medium text-gray-700">Notes</label>
-        <textarea name="notes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" rows="3" value="<?php $schedule['notes'] ?>"></textarea>
+        <textarea name="notes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" rows="3" value="<?php echo $lastSchedule['notes']; ?>"></textarea>
     </div>
 
     <div class="flex justify-end space-x-2">
