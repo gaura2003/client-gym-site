@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Gym Owner Registration</title>
+</head>
+<body class="bg-gray-100">
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+      <h2 class="text-2xl font-bold text-center mb-6">Gym Owner Registration</h2>
+      <form action="register.php" method="POST" enctype="multipart/form-data">
+        <!-- Full Name -->
+        <div class="mb-4">
+          <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
+          <input type="text" id="name" name="name" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+
+        <!-- Email -->
+        <div class="mb-4">
+          <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+          <input type="email" id="email" name="email" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+
+        <!-- Phone -->
+        <div class="mb-4">
+          <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+          <input type="tel" id="phone" name="phone" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+
+        <!-- Password -->
+        <div class="mb-4">
+          <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+          <input type="password" id="password" name="password" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+
+        <!-- Address -->
+        <div class="mb-4">
+          <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
+          <input type="text" id="address" name="address" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+
+        <!-- City -->
+        <div class="mb-4">
+          <label for="city" class="block text-sm font-medium text-gray-700">City</label>
+          <input type="text" id="city" name="city" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+
+        <!-- State -->
+        <div class="mb-4">
+          <label for="state" class="block text-sm font-medium text-gray-700">State</label>
+          <input type="text" id="state" name="state" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+
+        <!-- Country -->
+        <div class="mb-4">
+          <label for="country" class="block text-sm font-medium text-gray-700">Country</label>
+          <input type="text" id="country" name="country" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+
+        <!-- Zip Code -->
+        <div class="mb-4">
+          <label for="zip_code" class="block text-sm font-medium text-gray-700">Zip Code</label>
+          <input type="text" id="zip_code" name="zip_code" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+
+        <!-- Profile Picture -->
+        <div class="mb-4">
+          <label for="profile_picture" class="block text-sm font-medium text-gray-700">Profile Picture</label>
+          <input type="file" id="profile_picture" name="profile_picture" accept="image/*"
+            class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+        </div>
+
+        <!-- Submit -->
+        <button type="submit"
+          class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+          Register
+        </button>
+      </form>
+      <p class="text-sm text-center text-gray-600 mt-4">
+        Already have an account? <a href="login.html" class="text-indigo-600 hover:underline">Login</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>
