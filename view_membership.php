@@ -2,58 +2,70 @@
 session_start();
 require 'config/database.php';
 
-if (!isset($_SESSION['user_id'])) {
+$user_id = $_SESSION['user_id'] ?? null;
+
+if (!$user_id) {
     header('Location: login.html');
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
 $db = new GymDatabase();
 $conn = $db->getConnection();
 
-// Fetch current membership
+// Fetch user's active membership with completed payment
 $stmt = $conn->prepare("
-    SELECT um.*, mp.name, mp.price, mp.features 
-    FROM user_memberships um 
-    JOIN membership_plans mp ON um.plan_id = mp.id 
-    WHERE um.user_id = :user_id 
-    ORDER BY um.start_date DESC LIMIT 1
+    SELECT um.*, gmp.tier as plan_name, gmp.inclusions, gmp.duration,
+           g.name as gym_name, g.address, p.status as payment_status
+    FROM user_memberships um
+    JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
+    JOIN gyms g ON gmp.gym_id = g.gym_id
+    JOIN payments p ON um.id = p.membership_id
+    WHERE um.user_id = ?
+    AND um.status = 'active'
+    AND p.status = 'completed'
+    ORDER BY um.start_date DESC
 ");
-$stmt->bindParam(':user_id', $user_id);
-$stmt->execute();
-$current_membership = $stmt->fetch(PDO::FETCH_ASSOC);
+$stmt->execute([$user_id]);
+$membership = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Fetch available plans
-$stmt = $conn->prepare("SELECT * FROM membership_plans WHERE status = 'active'");
+// Fetch available plans (those that are active)
+$stmt = $conn->prepare("SELECT * FROM membership_plans WHERE status='active' ");
 $stmt->execute();
 $available_plans = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 include 'includes/navbar.php';
 ?>
-
 <div class="container mx-auto px-4 py-8">
-    <!-- Current Membership -->
-    <?php if ($current_membership): ?>
+    <!-- User Membership -->
+    <?php if ($membership): ?>
         <div class="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 class="text-2xl font-bold mb-4">Current Membership</h2>
+            <h2 class="text-2xl font-bold mb-4">Your Active Membership</h2>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <p class="font-semibold"><?php echo htmlspecialchars($current_membership['name']); ?></p>
-                    <p class="text-gray-600">Valid until: <?php echo date('F j, Y', strtotime($current_membership['end_date'])); ?></p>
-                    <p class="text-gray-600">Status: <?php echo ucfirst($current_membership['status']); ?></p>
+                    <p class="font-semibold">Plan: <?php echo htmlspecialchars($membership['plan_name']); ?></p>
+                    <p class="text-gray-600">Valid until: <?php echo date('F j, Y', strtotime($membership['end_date'])); ?></p>
+                    <p class="text-gray-600">Status: <?php echo ucfirst($membership['status']); ?></p>
                 </div>
                 <div>
-                    <p class="font-semibold">Features:</p>
-                    <?php 
-                    $features = json_decode($current_membership['features'], true);
-                    foreach ($features as $feature): ?>
-                        <p class="text-gray-600">• <?php echo htmlspecialchars($feature); ?></p>
-                    <?php endforeach; ?>
+                    <p class="font-semibold">Gym: <?php echo htmlspecialchars($membership['gym_name']); ?></p>
+                    <p class="text-gray-600">Address: <?php echo htmlspecialchars($membership['address']); ?></p>
+                    <p class="text-gray-600">Payment Status: <?php echo ucfirst($membership['payment_status']); ?></p>
                 </div>
             </div>
+            <div>
+                    <h3 class="text-lg font-semibold mb-4">Inclusions</h3>
+                    <ul class="list-disc list-inside space-y-2">
+                        <?php
+                            $inclusions = explode(',', $membership['inclusions']);
+                        foreach ($inclusions as $inclusion): ?>
+                            <li><?php echo htmlspecialchars(trim($inclusion)); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
         </div>
+    <?php else: ?>
+        <p class="text-gray-600">You do not have an active membership with completed payment.</p>
     <?php endif; ?>
-
     <!-- Available Plans -->
     <h2 class="text-2xl font-bold mb-6">Available Membership Plans</h2>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">

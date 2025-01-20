@@ -22,7 +22,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($auth->login($email, $password)) {
             $_SESSION['success'] = "Login successful!";
-            header("Location: dashboard.php"); // or any other page after login
+            if (isset($_SESSION['user_id'])) {
+                if (isset($_SESSION['return_to'])) {
+                    $return_url = $_SESSION['return_to'];
+                    unset($_SESSION['return_to']); // Clear the session variable after redirect
+                    header("Location: $return_url"); // Redirect to the stored URL
+                    exit();
+                } else {
+                    // Redirect to the default page after login (e.g., user dashboard)
+                    header("Location: dashboard.php"); // Replace with your default page
+                    exit();
+                }
+            }
             exit();
         } else {
             throw new Exception("Invalid email or password.");

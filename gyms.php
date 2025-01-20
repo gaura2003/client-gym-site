@@ -1,4 +1,5 @@
 <?php 
+session_start();
 require_once 'config/database.php';
 require_once 'includes/auth.php';
 
@@ -47,6 +48,15 @@ $gyms = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $cityStmt = $db->query("SELECT DISTINCT city FROM gyms WHERE status = 'active'");
 $cities = $cityStmt->fetchAll(PDO::FETCH_COLUMN);
 
+$query = "SELECT DISTINCT JSON_UNQUOTE(JSON_EXTRACT(amenities, CONCAT('$[', n, ']'))) AS amenity
+          FROM gyms
+          CROSS JOIN (SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) n
+          WHERE status = 'active' AND amenities IS NOT NULL";
+
+// Execute the query
+$stmt = $db->query($query);
+$amenities = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
 include 'includes/navbar.php';
 ?>
 <div class="container mx-auto px-4 py-8">
@@ -81,15 +91,16 @@ include 'includes/navbar.php';
                     <div class="mt-2 space-y-2">
                         <?php
                         $amenityOptions = ['parking', 'shower', 'locker', 'wifi', 'cafe', 'spa'];
-                        foreach ($amenityOptions as $amenity):
+                        foreach ($amenities as $amenity):
+                            if (!empty($amenity)) {
                         ?>
                             <label class="inline-flex items-center mr-4">
-                                <input type="checkbox" name="amenities[]" value="<?php echo $amenity; ?>"
-                                       <?php echo in_array($amenity, $amenities) ? 'checked' : ''; ?>
+                                <input type="checkbox"  name="amenities[]" value="<?php echo $amenity; ?>"
+                                       <?php echo in_array($amenity, $amenities) ? '' : 'checked'; ?>
                                        class="rounded border-gray-300 text-blue-600">
                                 <span class="ml-2"><?php echo ucfirst($amenity); ?></span>
                             </label>
-                        <?php endforeach; ?>
+                        <?php } endforeach; ?>
                     </div>
                 </div>
             </div>

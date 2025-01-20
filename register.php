@@ -29,7 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($auth->register($username, $email, $password,$phone, $role)) {
             $_SESSION['success'] = "Registration successful! Please login.";
-            header("Location: login.php");
+            $redirectUrl = isset($_SESSION['prev_url']) ? $_SESSION['prev_url'] : 'login.php';
+    header("Location: $redirectUrl");
             exit();
         } else {
             throw new Exception("Registration failed. Username or email may already exist.");

@@ -35,5 +35,8 @@ include 'includes/navbar.php';
         <a href="dashboard.php" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
             Go to Dashboard
         </a>
+        <a href="schedule_workout.php" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+           Schedule Workout
+        </a>
     </div>
 </div>

@@ -1,5 +1,6 @@
 <?php
 session_start();
+
 require_once 'config/database.php';
 
 $db = new GymDatabase();
@@ -69,6 +70,9 @@ $planStmt = $conn->prepare("
 $planStmt->execute([$gym_id]);
 $plans = $planStmt->fetchAll(PDO::FETCH_ASSOC);
 
+if (!isset($_SESSION['user_id']) && isset($_GET['gym_id'])) {  // Check for gym_id in GET parameter
+    $_SESSION['return_to'] = $_SERVER['REQUEST_URI']; // Store the current URL in the session
+}
 include 'includes/navbar.php';
 ?>
 <div class="container mx-auto px-4 py-8">
