@@ -47,7 +47,6 @@ $gym_id = $gym['gym_id'];
 
 // Initialize stats array
 $stats = [
-    'total_members' => 0,
     'active_memberships' => 0,
     'monthly_revenue' => 0,
     'total_classes' => 0,
@@ -57,11 +56,6 @@ $stats = [
     'total_bookings' => 0
 ];
 
-// Fetch all stats
-$stmt = $conn->prepare("SELECT COUNT(*) as count FROM members WHERE gym_id = :gym_id");
-$stmt->bindParam(':gym_id', $gym_id);
-$stmt->execute();
-$stats['total_members'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
 $stmt = $conn->prepare("
     SELECT COUNT(*) as count 
@@ -139,7 +133,6 @@ $revenueStmt = $conn->prepare($revenueQuery);
 $revenueStmt->execute([$gym_id]);
 $revenue = $revenueStmt->fetch(PDO::FETCH_ASSOC);
 
-
 ?>
 
 <div class="container mx-auto px-4 py-8">
@@ -155,7 +148,7 @@ $revenue = $revenueStmt->fetch(PDO::FETCH_ASSOC);
                 <h3 class="text-gray-500 text-sm font-medium">Total Members</h3>
                 <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Members</span>
             </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($stats['total_members']); ?></p>
+        
             <p class="text-sm text-gray-600 mt-1">Active: <?php echo number_format($stats['active_memberships']); ?></p>
         </div>
         <!-- Revenue Stats Card -->
@@ -181,7 +174,7 @@ $revenue = $revenueStmt->fetch(PDO::FETCH_ASSOC);
                 <h3 class="text-gray-500 text-sm font-medium">Monthly Revenue</h3>
                 <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Income</span>
             </div>
-            <p class="text-3xl font-bold <?php echo ($monthly_earnings - $revenue['total_revenue'] <= 0) ? 'text-green-600' : 'text-red-600'; ?> mt-2">
+            <p class="text-3xl font-bold <?php echo ($monthly_earnings + $revenue['total_revenue'] <= 0) ? 'text-red-600' : 'text-green-600'; ?> mt-2">
     ₹<?php echo number_format(abs($monthly_earnings + $revenue['total_revenue']), 2); ?>
 </p>
 

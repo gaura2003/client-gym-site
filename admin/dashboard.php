@@ -16,9 +16,6 @@ $counts = [];
 $stmt = $conn->query("SELECT COUNT(*) as total FROM users");
 $counts['users'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-$stmt = $conn->query("SELECT COUNT(*) as total FROM members");
-$counts['members'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-
 // Gyms and Related Tables
 $stmt = $conn->query("SELECT COUNT(*) as total FROM gyms");
 $counts['gyms'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
@@ -65,8 +62,6 @@ $counts['payments'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 $stmt = $conn->query("SELECT COUNT(*) as total FROM notifications");
 $counts['notifications'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-$stmt = $conn->query("SELECT COUNT(*) as total FROM visit");
-$counts['visits'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
 include '../includes/navbar.php';
 ?><?php
@@ -86,10 +81,9 @@ $counts['monthly_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Users & Members Card -->
         <div class="bg-white rounded-lg shadow-lg p-6">
-            <h3 class="text-xl font-semibold mb-2">Users & Members</h3>
+            <h3 class="text-xl font-semibold mb-2">Users & Owners</h3>
             <p class="text-3xl font-bold text-blue-600">Users: <?php echo number_format($counts['users']); ?></p>
-            <p class="text-sm text-gray-600">Members: <?php echo number_format($counts['members']); ?></p>
-            <p class="text-sm text-gray-600">Gym Owners: <?php echo number_format($counts['gym_owners']); ?></p>
+            <p class="text-3xl font-bold text-purple-600">Gym Owners: <?php echo number_format($counts['gym_owners']); ?></p>
         </div>
 
         <!-- Gyms Card -->
@@ -111,7 +105,6 @@ $counts['monthly_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
         <!-- Activity Card -->
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h3 class="text-xl font-semibold mb-2">Activity</h3>
-            <p class="text-3xl font-bold text-orange-600">Visits: <?php echo number_format($counts['visits']); ?></p>
             <p class="text-sm text-gray-600">Bookings: <?php echo number_format($counts['bookings']); ?></p>
             <p class="text-sm text-gray-600">Schedules: <?php echo number_format($counts['schedules']); ?></p>
         </div>
@@ -129,7 +122,7 @@ $counts['monthly_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             <h3 class="text-xl font-semibold mb-2">Payments</h3>
             <p class="text-3xl font-bold text-indigo-600">Total: <?php echo number_format($counts['payments']); ?></p>
             <p class="text-sm text-gray-600">Images: <?php echo number_format($counts['gym_images']); ?></p>
-            <p class="text-sm text-gray-600">Monthly Revenue: $<?php echo number_format($counts['monthly_revenue'], 2); ?></p>
+            <p class="text-sm text-gray-600">Monthly Revenue: ₹<?php echo number_format($counts['monthly_revenue'], 2); ?></p>
         </div>
         <button id="distribute-revenue" onclick="distributeRevenue()">Distribute Revenues</button>
 <script>

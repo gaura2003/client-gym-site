@@ -38,18 +38,35 @@ $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 
 $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+ // Fetch user's active membership with completed payment
+ $stmt = $conn->prepare("
+ SELECT um.*, gmp.tier as plan_name, gmp.inclusions, gmp.duration,
+        g.name as gym_name, g.address, p.status as payment_status
+ FROM user_memberships um
+ JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
+ JOIN gyms g ON gmp.gym_id = g.gym_id
+ JOIN payments p ON um.id = p.membership_id
+ WHERE um.user_id = ?
+ AND um.status = 'active'
+ AND p.status = 'completed'
+ ORDER BY um.start_date DESC
+");
+ $stmt->execute([$user_id]);
+ $membership = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
 <?php include 'includes/navbar.php'; ?>
 
 <div class="container mx-auto px-4 py-8">
+<?php if($schedules): ?>
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">My Workout Schedule</h1>
         <a href="schedule_workout.php" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
             Schedule New Workout
         </a>
     </div>
-
+    
     <!-- Upcoming Workouts -->
     <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
         <h2 class="text-xl font-semibold mb-4">Upcoming Workouts</h2>
@@ -177,7 +194,14 @@ $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php endforeach; ?>
         </div>
     </div>
-
+    <?php else: ?>
+        <div class="flex flex-col justify-between items-center bg-white rounded-lg shadow-lg p-6 mb-8"> 
+        <h1 class="text-2xl font-bold">My Workout Schedule</h1>
+        <a href="schedule.php?gym_id=<?php echo $membership['gym_id'];?>" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 my-10">
+            Create Schedule
+        </a>
+    </div>
+    <?php endif; ?>
 </div>
 <!-- Popup HTML -->
 <div id="cancel-popup" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">

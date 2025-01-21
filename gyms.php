@@ -12,13 +12,19 @@ $auth = new Auth($db);
 $search = $_GET['search'] ?? '';
 $city = $_GET['city'] ?? '';
 $amenities = $_GET['amenities'] ?? [];
+$min_price = $_GET['min_price'] ?? $_POST['min_price'] ?? '';  // Added min price filter
+$max_price = $_GET['max_price'] ?? '';  // Added max price filter
 
-// Base query for gyms
-$sql = "SELECT g.*, 
-        (SELECT AVG(rating) FROM reviews r WHERE r.gym_id = g.gym_id) as avg_rating,
-        (SELECT COUNT(*) FROM reviews r WHERE r.gym_id = g.gym_id) as review_count
-        FROM gyms g 
-        WHERE g.status = 'active'";
+// Base query for gyms with membership price
+$sql = "
+    SELECT g.*, 
+           (SELECT AVG(rating) FROM reviews r WHERE r.gym_id = g.gym_id) as avg_rating,
+           (SELECT COUNT(*) FROM reviews r WHERE r.gym_id = g.gym_id) as review_count,
+           gmp.price as monthly_price
+    FROM gyms g 
+    JOIN gym_membership_plans gmp ON g.gym_id = gmp.gym_id
+    WHERE g.status = 'active'
+    AND gmp.duration = 'Monthly'";
 
 $params = [];
 
@@ -38,6 +44,17 @@ if (!empty($amenities)) {
         $sql .= " AND JSON_CONTAINS(g.amenities, ?)";
         $params[] = json_encode($amenity);
     }
+}
+
+// Add price filter if set
+if ($min_price !== '') {
+    $sql .= " AND gmp.price >= ?";
+    $params[] = $min_price;
+}
+
+if ($max_price !== '') {
+    $sql .= " AND gmp.price <= ?";
+    $params[] = $max_price;
 }
 
 $stmt = $db->prepare($sql);
@@ -103,6 +120,21 @@ include 'includes/navbar.php';
                         <?php } endforeach; ?>
                     </div>
                 </div>
+
+                <!-- Price Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Price</label>
+                    <div class="flex space-x-4">
+                        <div>
+                            <input type="number" name="min_price" value="<?php echo htmlspecialchars($min_price); ?>"
+                                   class="block w-full rounded-md border border-gray-300 p-3" placeholder="Min Price">
+                        </div>
+                        <div>
+                            <input type="number" name="max_price" value="<?php echo htmlspecialchars($max_price); ?>"
+                                   class="block w-full rounded-md border border-gray-300 p-3" placeholder="Max Price">
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="flex justify-end">
@@ -154,17 +186,13 @@ include 'includes/navbar.php';
                         <?php endforeach; ?>
                     </div>
 
-                    <!-- Occupancy -->
+                    <!-- Monthly Price -->
                     <div class="mb-4">
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <?php $occupancyPercentage = ($gym['current_occupancy'] / $gym['max_capacity']) * 100; ?>
-                            <div class="bg-blue-600 h-2 rounded-full" 
-                                 style="width: <?php echo $occupancyPercentage; ?>%"></div>
-                        </div>
-                        <p class="text-sm text-gray-600 mt-1">
-                            <?php echo $gym['current_occupancy']; ?>/<?php echo $gym['max_capacity']; ?> capacity
+                        <p class="text-lg font-semibold text-gray-800">
+                            ₹<?php echo number_format($gym['monthly_price'], 2); ?> / Month
                         </p>
                     </div>
+
                     <!-- Actions -->
                     <div class="flex justify-between items-center mt-4">
                         <a href="../gym/gym_details.php?gym_id=<?php echo $gym['gym_id']; ?>" 

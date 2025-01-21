@@ -151,7 +151,7 @@ include 'includes/navbar.php';
             <label for="email" class="block text-gray-700">Email Address</label>
             <input type="email" id="email" name="email" required class="w-full p-3 border border-gray-300 rounded-lg mt-2">
           </div>
-        </div>4321`
+          </div>
 
         <div class="mt-4">
           <label for="message" class="block text-gray-700">Your Message</label>

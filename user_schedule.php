@@ -5,7 +5,7 @@
     $db   = new GymDatabase();
     $conn = $db->getConnection();
 
-    // Fetch user's gym and schedule
+$user_id = $_SESSION['user_id'];
   // Modify the schedule query to group by gym_id and get date ranges
   $stmt = $conn->prepare("
 SELECT 
@@ -27,7 +27,7 @@ AND s.start_time >= CURDATE()
 ORDER BY s.gym_id, s.start_date ASC
 ");
 
-$stmt->execute([$_SESSION['user_id']]);
+$stmt->execute([$user_id]);
 $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Group schedules by gym_id
@@ -57,23 +57,36 @@ foreach ($schedules as $schedule) {
         'personal_training' => 'Personal Training',
     ];
 
+     // Fetch user's active membership with completed payment
+     $stmt = $conn->prepare("
+     SELECT um.*, gmp.tier as plan_name, gmp.inclusions, gmp.duration,
+            g.name as gym_name, g.address, p.status as payment_status
+     FROM user_memberships um
+     JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
+     JOIN gyms g ON gmp.gym_id = g.gym_id
+     JOIN payments p ON um.id = p.membership_id
+     WHERE um.user_id = ?
+     AND um.status = 'active'
+     AND p.status = 'completed'
+     ORDER BY um.start_date DESC
+ ");
+     $stmt->execute([$user_id]);
+     $membership = $stmt->fetch(PDO::FETCH_ASSOC);
     include 'includes/navbar.php';
 ?>
 
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">My Schedule</h2>
-            <a href="./schedule_workout.php">
-            <button
-                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                Change Schedule
-            </button>
-            </a>
-        </div>
-
-        <!-- Calendar View -->
-        <div id="calendar"></div>
+    <?php if($schedules): ?>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">My Workout Schedule</h1>
+        <a href="schedule_workout.php" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+          Change Schedule 
+        </a>
+    </div>
+    
+    <!-- Calendar View -->
+    <div id="calendar"></div>
 
     <!-- Upcoming Schedules -->
     <div class="mt-8 bg-white rounded-lg p-6">
@@ -130,6 +143,14 @@ foreach ($schedules as $schedule) {
 
             </div>
         <?php endforeach; ?>
+        <?php else: ?>
+        <div class="flex flex-col justify-between items-center"> 
+        <h1 class="text-2xl font-bold">My Workout Schedule</h1>
+        <a href="schedule.php?gym_id=<?php echo $membership['gym_id']; ?>" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 my-10">
+            Create Schedule
+        </a>
+    </div>
+    <?php endif; ?>
     </div>
 </div>
 

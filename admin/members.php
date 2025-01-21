@@ -5,14 +5,22 @@ require_once '../config/database.php';
 $db = new GymDatabase();
 $conn = $db->getConnection();
 
+// Pagination variables
+$limit = 10; // Number of records per page
+$page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
+
 // Handle filters
-$status = $_GET['status'] ?? 'all';
+$gym_id = $_GET['gym_id'] ?? 'all';
 $membership = $_GET['membership'] ?? 'all';
 $search = $_GET['search'] ?? '';
-$gym_id = $_GET['gym_id'] ?? '';
 $plan_id = $_GET['plan_id'] ?? '';
 
-// Fetch available membership plans for filter dropdown
+// Fetch available gyms for the filter dropdown
+$gymStmt = $conn->query("SELECT gym_id, name FROM gyms");
+$gyms = $gymStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch available membership plans for the filter dropdown
 $planStmt = $conn->query("SELECT id, name FROM membership_plans WHERE status = 'active'");
 $membershipPlans = $planStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -23,18 +31,18 @@ $query = "
         um.status as membership_status, um.start_date, um.end_date,
         mp.name as plan_name, mp.visit_limit,
         g.name as gym_name,
-        COUNT(v.id) as total_visits,
-        (mp.visit_limit - COUNT(v.id)) as remaining_visits
+        COUNT(s.id) as total_schedules,
+        (mp.visit_limit - COUNT(s.id)) as remaining_schedules
     FROM users u
     LEFT JOIN user_memberships um ON u.id = um.user_id
     LEFT JOIN membership_plans mp ON um.plan_id = mp.id
-    LEFT JOIN gyms g ON um.id = g.gym_id
-    LEFT JOIN visit v ON u.id = v.user_id AND v.check_in_time BETWEEN um.start_date AND um.end_date
+    LEFT JOIN gyms g ON um.gym_id = g.gym_id
+    LEFT JOIN schedules s ON u.id = s.user_id AND s.check_in_time BETWEEN um.start_date AND um.end_date
     WHERE u.role = 'member'
 ";
 
-if ($status !== 'all') {
-    $query .= " AND u.status = :status";
+if ($gym_id !== 'all') {
+    $query .= " AND g.gym_id = :gym_id";
 }
 if ($membership !== 'all') {
     $query .= " AND um.status = :membership";
@@ -42,29 +50,48 @@ if ($membership !== 'all') {
 if ($search) {
     $query .= " AND (u.username LIKE :search OR u.email LIKE :search)";
 }
-if ($gym_id) {
-    $query .= " AND g.id = :gym_id";
-}
 if ($plan_id) {
     $query .= " AND mp.id = :plan_id";
 }
 
 $query .= " GROUP BY u.id, um.id";
+$totalQuery = $query; // Query for counting total records
+
+$query .= " LIMIT :limit OFFSET :offset";
 
 $stmt = $conn->prepare($query);
 
 // Bind parameters
-if ($status !== 'all') $stmt->bindValue(':status', $status);
-if ($membership !== 'all') $stmt->bindValue(':membership', $membership);
-if ($search) $stmt->bindValue(':search', "%$search%");
-if ($gym_id) $stmt->bindValue(':gym_id', $gym_id);
-if ($plan_id) $stmt->bindValue(':plan_id', $plan_id);
+if ($gym_id !== 'all')
+    $stmt->bindValue(':gym_id', $gym_id);
+if ($membership !== 'all')
+    $stmt->bindValue(':membership', $membership);
+if ($search)
+    $stmt->bindValue(':search', "%$search%");
+if ($plan_id)
+    $stmt->bindValue(':plan_id', $plan_id);
+$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 
 $stmt->execute();
 $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-include '../includes/navbar.php';
+// Count total records for pagination
+$totalStmt = $conn->prepare($totalQuery);
+if ($gym_id !== 'all')
+    $totalStmt->bindValue(':gym_id', $gym_id);
+if ($membership !== 'all')
+    $totalStmt->bindValue(':membership', $membership);
+if ($search)
+    $totalStmt->bindValue(':search', "%$search%");
+if ($plan_id)
+    $totalStmt->bindValue(':plan_id', $plan_id);
+$totalStmt->execute();
+$totalRecords = $totalStmt->rowCount();
 
+$totalPages = ceil($totalRecords / $limit);
+
+include '../includes/navbar.php';
 ?>
 
 <div class="container mx-auto px-4 py-8">
@@ -72,14 +99,16 @@ include '../includes/navbar.php';
     <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
         <form class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700">Status</label>
-                <select name="status" class="mt-1 block w-full rounded-md border-gray-300">
-                    <option value="all">All</option>
-                    <option value="active" <?php echo $status === 'active' ? 'selected' : ''; ?>>Active</option>
-                    <option value="inactive" <?php echo $status === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                <label class="block text-sm font-medium text-gray-700">Gym</label>
+                <select name="gym_id" class="mt-1 block w-full rounded-md border-gray-300">
+                    <option value="all">All Gyms</option>
+                    <?php foreach ($gyms as $gym): ?>
+                        <option value="<?php echo $gym['gym_id']; ?>" <?php echo ($gym_id == $gym['gym_id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($gym['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
-
             <div>
                 <label class="block text-sm font-medium text-gray-700">Membership</label>
                 <select name="membership" class="mt-1 block w-full rounded-md border-gray-300">
@@ -88,7 +117,6 @@ include '../includes/navbar.php';
                     <option value="expired" <?php echo $membership === 'expired' ? 'selected' : ''; ?>>Expired</option>
                 </select>
             </div>
-
             <div>
                 <label class="block text-sm font-medium text-gray-700">Membership Plan</label>
                 <select name="plan_id" class="mt-1 block w-full rounded-md border-gray-300">
@@ -101,13 +129,11 @@ include '../includes/navbar.php';
                     <?php endforeach; ?>
                 </select>
             </div>
-
             <div>
                 <label class="block text-sm font-medium text-gray-700">Search</label>
-                <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" 
-                       class="mt-1 block w-full rounded-md border-gray-300">
+                <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>"
+                    class="mt-1 block w-full rounded-md border-gray-300">
             </div>
-
             <div class="flex items-end">
                 <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
                     Apply Filters
@@ -115,7 +141,6 @@ include '../includes/navbar.php';
             </div>
         </form>
     </div>
-
 
     <!-- Members Table -->
     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -125,7 +150,7 @@ include '../includes/navbar.php';
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gym</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Membership</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visits</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedules</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -134,35 +159,22 @@ include '../includes/navbar.php';
                 <?php foreach ($members as $member): ?>
                     <tr>
                         <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($member['username']); ?></div>
+                            <div class="text-sm font-medium text-gray-900">
+                                <?php echo htmlspecialchars($member['username']); ?></div>
                             <div class="text-sm text-gray-500"><?php echo htmlspecialchars($member['email']); ?></div>
                         </td>
+                        <td class="px-6 py-4"><?php echo htmlspecialchars($member['gym_name']); ?></td>
+                        <td class="px-6 py-4"><?php echo htmlspecialchars($member['plan_name']); ?></td>
+                        <td class="px-6 py-4">Used: <?php echo $member['total_schedules']; ?> / Remaining:
+                            <?php echo $member['remaining_schedules']; ?></td>
                         <td class="px-6 py-4">
-                            <div class="text-sm text-gray-900"><?php echo htmlspecialchars($member['gym_name']); ?></div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm text-gray-900"><?php echo htmlspecialchars($member['plan_name']); ?></div>
-                            <div class="text-sm text-gray-500">
-                                <?php echo date('M d, Y', strtotime($member['start_date'])); ?> -
-                                <?php echo date('M d, Y', strtotime($member['end_date'])); ?>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm text-gray-900">
-                                Used: <?php echo $member['total_visits']; ?> /
-                                Limit: <?php echo $member['visit_limit']; ?>
-                            </div>
-                            <div class="text-sm text-gray-500">
-                                Remaining: <?php echo $member['remaining_visits']; ?>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            <span
+                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                 <?php echo $member['membership_status'] === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
                                 <?php echo ucfirst($member['membership_status']); ?>
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-sm">
+                        <td class="px-6 py-4 text-sm flex flex-col">
                             <a href="member_details.php?id=<?php echo $member['id']; ?>"
                                 class="text-blue-600 hover:text-blue-900">View Details</a>
                             <a href="member_schedule.php?id=<?php echo $member['id']; ?>"
@@ -172,5 +184,19 @@ include '../includes/navbar.php';
                 <?php endforeach; ?>
             </tbody>
         </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex justify-between items-center mt-4">
+        <p class="text-sm text-gray-500">Showing <?php echo $offset + 1; ?> to
+            <?php echo min($offset + $limit, $totalRecords); ?> of <?php echo $totalRecords; ?> results</p>
+        <div class="space-x-2">
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <a href="?page=<?php echo $i; ?>&gym_id=<?php echo $gym_id; ?>&membership=<?php echo $membership; ?>&plan_id=<?php echo $plan_id; ?>&search=<?php echo $search; ?>"
+                    class="px-3 py-1 rounded-md <?php echo $page == $i ? 'bg-blue-500 text-white' : 'bg-gray-200'; ?>">
+                    <?php echo $i; ?>
+                </a>
+            <?php endfor; ?>
+        </div>
     </div>
 </div>

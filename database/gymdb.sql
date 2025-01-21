@@ -230,19 +230,13 @@ CREATE TABLE `gym_owners` (
   `profile_picture` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `gym_owners`
---
+
 
 INSERT INTO `gym_owners` (`id`, `name`, `email`, `phone`, `password_hash`, `is_verified`, `is_approved`, `created_at`, `address`, `city`, `state`, `country`, `zip_code`, `profile_picture`) VALUES
 (1, 'Raghav Rai', 'raghavrai@gmail.com', '08788938434', '$2y$10$NwTeB7d/XboafHlAnWbSeeNysccaBfAcDG3Q9eB2kx97Q6J9ZA..y', 1, 1, '2025-01-15 16:14:38', 'nya poora', 'ujjain', 'Madhya Pradesh', 'India', '456001', 'uploads/Screenshot 2024-12-20 151330.png'),
 (2, 'rahul kumawat', 'rahulkumawat1@gmail.com', '09878887784', '$2y$10$NwTeB7d/XboafHlAnWbSeeNysccaBfAcDG3Q9eB2kx97Q6J9ZA..y', 1, 1, '2025-01-17 08:20:05', 'maksi road , saint paul school', 'ujjain', 'Madhya Pradesh', 'India', '450994', 'uploads/Screenshot 2024-12-19 235302.png');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `gym_revenue`
---
 
 CREATE TABLE `gym_revenue` (
   `id` int(11) NOT NULL,
@@ -255,11 +249,7 @@ CREATE TABLE `gym_revenue` (
   `notes` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
 
---
--- Table structure for table `gym_revenue_distribution`
---
 
 CREATE TABLE `gym_revenue_distribution` (
   `id` int(11) NOT NULL,
@@ -270,11 +260,7 @@ CREATE TABLE `gym_revenue_distribution` (
   `payment_date` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
 
---
--- Table structure for table `gym_visit_revenue`
---
 
 CREATE TABLE `gym_visit_revenue` (
   `id` int(11) NOT NULL,
@@ -287,11 +273,7 @@ CREATE TABLE `gym_visit_revenue` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
 
---
--- Table structure for table `login_attempts`
---
 
 CREATE TABLE `login_attempts` (
   `id` int(11) NOT NULL,
@@ -299,9 +281,6 @@ CREATE TABLE `login_attempts` (
   `attempt_time` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `login_attempts`
---
 
 INSERT INTO `login_attempts` (`id`, `email`, `attempt_time`) VALUES
 (1, 'raghavrai@gmail.com', '2025-01-15 22:04:35'),
@@ -309,11 +288,7 @@ INSERT INTO `login_attempts` (`id`, `email`, `attempt_time`) VALUES
 (3, 'raghavrai@gmail.com', '2025-01-15 22:05:03'),
 (4, 'raghavrai@gmail.com', '2025-01-15 22:07:17');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `members`
---
 
 CREATE TABLE `members` (
   `member_id` int(11) NOT NULL,
@@ -328,11 +303,6 @@ CREATE TABLE `members` (
   `visit_history` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`visit_history`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `membership_plans`
---
 
 CREATE TABLE `membership_plans` (
   `id` int(11) NOT NULL,
@@ -346,19 +316,11 @@ CREATE TABLE `membership_plans` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `membership_plans`
---
 
 INSERT INTO `membership_plans` (`id`, `name`, `description`, `price`, `duration_days`, `visit_limit`, `features`, `status`, `created_at`) VALUES
 (1, 'basic plan', 'Access All 3 Tier GYM', 599.00, 30, NULL, '[\"Access All GYM \\r\",\"Access any City GYM\"]', 'active', '2025-01-15 15:43:29'),
 (2, 'basic plan', 'Access All 2 Tier GYM', 999.00, 30, NULL, '[\"Access All GYM \\r\",\"Access any City GYM\"]', 'active', '2025-01-15 15:44:00');
 
--- --------------------------------------------------------
-
---
--- Table structure for table `notifications`
---
 
 CREATE TABLE `notifications` (
   `notification_id` int(11) NOT NULL,
@@ -368,11 +330,6 @@ CREATE TABLE `notifications` (
   `sent_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `password_resets`
---
 
 CREATE TABLE `password_resets` (
   `id` int(11) NOT NULL,
@@ -381,11 +338,6 @@ CREATE TABLE `password_resets` (
   `expires_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `payments`
---
 
 CREATE TABLE `payments` (
   `id` int(11) NOT NULL,
@@ -399,18 +351,11 @@ CREATE TABLE `payments` (
   `payment_date` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `payments`
---
+
 
 INSERT INTO `payments` (`id`, `gym_id`, `user_id`, `membership_id`, `amount`, `payment_method`, `transaction_id`, `status`, `payment_date`) VALUES
 (1, 1, 1, 1, 10000.00, 'razorpay', 'pay_PkPkj0JbnnQnWV', 'completed', '2025-01-17 06:38:09');
 
--- --------------------------------------------------------
-
---
--- Table structure for table `reviews`
---
 
 CREATE TABLE `reviews` (
   `id` int(11) NOT NULL,
@@ -423,18 +368,12 @@ CREATE TABLE `reviews` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `reviews`
---
+
 
 INSERT INTO `reviews` (`id`, `user_id`, `gym_id`, `rating`, `comment`, `visit_date`, `status`, `created_at`) VALUES
 (1, 1, 1, 4, 'fggfgfh', NULL, 'approved', '2025-01-15 19:41:59');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `schedules`
---
 
 CREATE TABLE `schedules` (
   `id` int(11) NOT NULL,
@@ -472,15 +411,11 @@ CREATE TABLE `users` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `users`
---
+
 
 INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`, `phone`, `profile_image`, `status`, `created_at`, `updated_at`) VALUES
 (1, 'user', 'user@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$VjI1YlZ4aXhIRjRCS1NPTg$TUXAiUir7MFzoUH7f17rrQvogFFIU215pVzFfbu2DDM', 'member', '8799877978', NULL, 'active', '2025-01-15 14:25:19', '2025-01-15 14:25:19'),
 (2, 'admin', 'admin@gmail.com', '$argon2id$v=19$m=65536,t=4,p=1$WmI5L1FNbnY0OFZ4L3BPaQ$WhMo3Xe51DmSOt07J8lUSDs73ZhkSdjoVvTouCgM1rk', 'admin', '7097923443', NULL, 'active', '2025-01-15 14:33:08', '2025-01-15 14:35:22');
-
--- --------------------------------------------------------
 
 
 CREATE TABLE `user_memberships` (
@@ -495,18 +430,11 @@ CREATE TABLE `user_memberships` (
   `auto_renewal` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `user_memberships`
---
+
 
 INSERT INTO `user_memberships` (`id`, `gym_id`, `user_id`, `plan_id`, `start_date`, `end_date`, `status`, `payment_status`, `auto_renewal`) VALUES
 (1, 1, 1, 4, '2025-01-17', '2026-01-17', 'active', 'paid', 0);
 
--- --------------------------------------------------------
-
---
--- Table structure for table `visit`
---
 
 CREATE TABLE `visit` (
   `id` int(11) NOT NULL,
@@ -518,11 +446,6 @@ CREATE TABLE `visit` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `withdrawals`
---
 
 CREATE TABLE `withdrawals` (
   `id` int(11) NOT NULL,
@@ -534,308 +457,156 @@ CREATE TABLE `withdrawals` (
   `processed_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Indexes for dumped tables
---
 
---
--- Indexes for table `class_bookings`
---
 ALTER TABLE `class_bookings`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `gyms`
---
+
 ALTER TABLE `gyms`
   ADD PRIMARY KEY (`gym_id`);
 
---
--- Indexes for table `gym_classes`
---
+
 ALTER TABLE `gym_classes`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `gym_equipment`
---
 ALTER TABLE `gym_equipment`
   ADD PRIMARY KEY (`equipment_id`);
 
---
--- Indexes for table `gym_images`
---
 ALTER TABLE `gym_images`
   ADD PRIMARY KEY (`image_id`);
 
---
--- Indexes for table `gym_membership_plans`
---
 ALTER TABLE `gym_membership_plans`
   ADD PRIMARY KEY (`plan_id`);
 
---
--- Indexes for table `gym_operating_hours`
---
 ALTER TABLE `gym_operating_hours`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `gym_owners`
---
 ALTER TABLE `gym_owners`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `gym_revenue`
---
 ALTER TABLE `gym_revenue`
   ADD PRIMARY KEY (`id`),
   ADD KEY `gym_id` (`gym_id`),
   ADD KEY `gym_revenue_ibfk_2` (`schedule_id`);
 
---
--- Indexes for table `gym_revenue_distribution`
---
+
 ALTER TABLE `gym_revenue_distribution`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `gym_visit_revenue`
---
 ALTER TABLE `gym_visit_revenue`
   ADD PRIMARY KEY (`id`),
   ADD KEY `visit_id` (`visit_id`),
   ADD KEY `original_gym_id` (`original_gym_id`),
   ADD KEY `visited_gym_id` (`visited_gym_id`);
 
---
--- Indexes for table `login_attempts`
---
 ALTER TABLE `login_attempts`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `members`
---
 ALTER TABLE `members`
   ADD PRIMARY KEY (`member_id`);
 
---
--- Indexes for table `membership_plans`
---
 ALTER TABLE `membership_plans`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `notifications`
---
 ALTER TABLE `notifications`
   ADD PRIMARY KEY (`notification_id`);
 
---
--- Indexes for table `password_resets`
---
 ALTER TABLE `password_resets`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `payments`
---
 ALTER TABLE `payments`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `reviews`
---
 ALTER TABLE `reviews`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `schedules`
---
 ALTER TABLE `schedules`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `users`
---
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `user_memberships`
---
 ALTER TABLE `user_memberships`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `visit`
---
 ALTER TABLE `visit`
   ADD PRIMARY KEY (`id`);
 
---
--- Indexes for table `withdrawals`
---
 ALTER TABLE `withdrawals`
   ADD PRIMARY KEY (`id`),
   ADD KEY `gym_id` (`gym_id`);
 
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `class_bookings`
---
 ALTER TABLE `class_bookings`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
---
--- AUTO_INCREMENT for table `gyms`
---
 ALTER TABLE `gyms`
   MODIFY `gym_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
---
--- AUTO_INCREMENT for table `gym_classes`
---
 ALTER TABLE `gym_classes`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
---
--- AUTO_INCREMENT for table `gym_equipment`
---
 ALTER TABLE `gym_equipment`
   MODIFY `equipment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
---
--- AUTO_INCREMENT for table `gym_images`
---
 ALTER TABLE `gym_images`
   MODIFY `image_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
---
--- AUTO_INCREMENT for table `gym_membership_plans`
---
 ALTER TABLE `gym_membership_plans`
   MODIFY `plan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
---
--- AUTO_INCREMENT for table `gym_operating_hours`
---
 ALTER TABLE `gym_operating_hours`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
---
--- AUTO_INCREMENT for table `gym_owners`
---
 ALTER TABLE `gym_owners`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
---
--- AUTO_INCREMENT for table `gym_revenue`
---
 ALTER TABLE `gym_revenue`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `gym_revenue_distribution`
---
 ALTER TABLE `gym_revenue_distribution`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `gym_visit_revenue`
---
 ALTER TABLE `gym_visit_revenue`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `login_attempts`
---
 ALTER TABLE `login_attempts`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
---
--- AUTO_INCREMENT for table `members`
---
 ALTER TABLE `members`
   MODIFY `member_id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `membership_plans`
---
 ALTER TABLE `membership_plans`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
---
--- AUTO_INCREMENT for table `notifications`
---
 ALTER TABLE `notifications`
   MODIFY `notification_id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `password_resets`
---
 ALTER TABLE `password_resets`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `payments`
---
 ALTER TABLE `payments`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
---
--- AUTO_INCREMENT for table `reviews`
---
 ALTER TABLE `reviews`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
---
--- AUTO_INCREMENT for table `schedules`
---
 ALTER TABLE `schedules`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=367;
 
---
--- AUTO_INCREMENT for table `users`
---
 ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
---
--- AUTO_INCREMENT for table `user_memberships`
---
 ALTER TABLE `user_memberships`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
---
--- AUTO_INCREMENT for table `visit`
---
 ALTER TABLE `visit`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `withdrawals`
---
 ALTER TABLE `withdrawals`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `gym_revenue`
---
 ALTER TABLE `gym_revenue`
   ADD CONSTRAINT `gym_revenue_ibfk_1` FOREIGN KEY (`gym_id`) REFERENCES `gyms` (`gym_id`),
   ADD CONSTRAINT `gym_revenue_ibfk_2` FOREIGN KEY (`schedule_id`) REFERENCES `schedules` (`id`) ON DELETE CASCADE;
 COMMIT;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
