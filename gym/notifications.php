@@ -1,47 +1,51 @@
 <?php
 session_start();
-require 'config/database.php';
+require '../config/database.php';
 
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['owner_id'])) {
     header('Location: login.html');
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
+$owner_id = $_SESSION['owner_id'];
 $db = new GymDatabase();
 $conn = $db->getConnection();
 
 try {
     // Get gym ID and name
-    $stmt = $conn->prepare("SELECT id, username FROM users WHERE id = :user_id");
-    $stmt->bindParam(':user_id', $user_id);
+    $stmt = $conn->prepare("SELECT gym_id, name FROM gyms WHERE owner_id = :owner_id");
+    $stmt->bindParam(':owner_id', $owner_id);
     $stmt->execute();
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $gym = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$user) {
-        echo "<div class='text-red-500 text-center mt-8'>No user find with this id .</div>";
+    if (!$gym) {
+        echo "<div class='text-red-500 text-center mt-8'>No gym found for the logged-in owner.</div>";
         exit;
     }
 
+    $gym_id = $gym['gym_id'];
 
     // Fetch notifications for the gym
     $notificationStmt = $conn->prepare(
         "SELECT n.id, n.title, n.message, n.created_at 
          FROM notifications n 
-         WHERE n.user_id = :user_id 
+         WHERE n.gym_id = :gym_id 
          ORDER BY n.created_at DESC"
     );
-    $notificationStmt->bindParam(':user_id', $user_id);
+    $notificationStmt->bindParam(':gym_id', $gym_id);
     $notificationStmt->execute();
     $notifications = $notificationStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     echo "<div class='text-red-500 text-center mt-8'>Error: " . htmlspecialchars($e->getMessage()) . "</div>";
     exit;
 }
-include 'includes/navbar.php';
+include '../includes/navbar.php';
 
 ?>
     <div class="container mx-auto mt-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            Notifications for Gym: <span class="text-blue-600"><?= htmlspecialchars($gym['name']) ?></span>
+        </h2>
 
         <?php if (count($notifications) > 0): ?>
             <ul class="space-y-4">

@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 include '../includes/navbar.php';
 
 ?>
-<!-- Gym Update Form -->
+
 <form action="" method="POST" class="max-w-lg mx-auto bg-white shadow-md rounded-lg p-6 space-y-4">
 
     <div>
@@ -210,47 +210,60 @@ include '../includes/navbar.php';
         <div class="flex space-x-4">
             <div class="flex flex-wrap space-x-6">
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="wifi" <?php if (in_array('wifi', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="wifi" <?php if (in_array('wifi', json_decode($gym['amenities'])))
+                        echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="wifi" class="ml-2 text-sm">Wifi</label>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="pool" <?php if (in_array('pool', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="pool" <?php if (in_array('pool', json_decode($gym['amenities'])))
+                        echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="pool" class="ml-2 text-sm">Pool</label>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="sauna" <?php if (in_array('sauna', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="sauna" <?php if (in_array('sauna', json_decode($gym['amenities'])))
+                        echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="sauna" class="ml-2 text-sm">Sauna</label>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="steam_room" <?php if (in_array('steam_room', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="steam_room" <?php if (in_array('steam_room', json_decode($gym['amenities'])))
+                        echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="steam_room" class="ml-2 text-sm">Steam Room</label>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="free_weights" <?php if (in_array('free_weights', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="free_weights" <?php if (in_array('free_weights', json_decode($gym['amenities'])))
+                        echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="free_weights" class="ml-2 text-sm">Free Weights</label>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="cardio" <?php if (in_array('cardio', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="cardio" <?php if (in_array('cardio', json_decode($gym['amenities'])))
+                        echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="cardio" class="ml-2 text-sm">Cardio Equipment</label>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="personal_training" <?php if (in_array('personal_training', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="personal_training" <?php if (in_array('personal_training', json_decode($gym['amenities'])))
+                        echo 'checked'; ?>
+                        class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="personal_training" class="ml-2 text-sm">Personal Training</label>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="group_classes" <?php if (in_array('group_classes', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="group_classes" <?php if (in_array('group_classes', json_decode($gym['amenities'])))
+                        echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="group_classes" class="ml-2 text-sm">Group Classes</label>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="locker_rooms" <?php if (in_array('locker_rooms', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="locker_rooms" <?php if (in_array('locker_rooms', json_decode($gym['amenities'])))
+                        echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="locker_rooms" class="ml-2 text-sm">Locker Rooms</label>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="nutrition_counseling" <?php if (in_array('nutrition_counseling', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="nutrition_counseling" <?php if (in_array('nutrition_counseling', json_decode($gym['amenities'])))
+                        echo 'checked'; ?>
+                        class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="nutrition_counseling" class="ml-2 text-sm">Nutrition Counseling</label>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="amenities[]" value="childcare" <?php if (in_array('childcare', json_decode($gym['amenities']))) echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
+                    <input type="checkbox" name="amenities[]" value="childcare" <?php if (in_array('childcare', json_decode($gym['amenities'])))
+                        echo 'checked'; ?> class="h-4 w-4 text-blue-500 focus:ring-0">
                     <label for="childcare" class="ml-2 text-sm">Childcare</label>
                 </div>
             </div>
@@ -277,14 +290,11 @@ include '../includes/navbar.php';
         <div>
             <?php foreach ($gym_plans as $plan): ?>
                 <div class="grid grid-cols-3 gap-4">
-                    <input type="text" name="gym_membership_plans[<?php echo $plan['plan_id']; ?>][plan_name]"
-                        value="<?php echo htmlspecialchars($plan['plan_name']); ?>"
+                    <input type="text" name="gym_membership_plans[<?php echo $plan['plan_id']; ?>][duration]"
+                        value="<?php echo htmlspecialchars($plan['duration']); ?>"
                         class="w-full p-2 border border-gray-300 rounded-md">
                     <input type="text" name="gym_membership_plans[<?php echo $plan['plan_id']; ?>][price]"
                         value="<?php echo htmlspecialchars($plan['price']); ?>"
-                        class="w-full p-2 border border-gray-300 rounded-md">
-                    <input type="text" name="gym_membership_plans[<?php echo $plan['plan_id']; ?>][duration]"
-                        value="<?php echo htmlspecialchars($plan['duration']); ?>"
                         class="w-full p-2 border border-gray-300 rounded-md">
                 </div>
             <?php endforeach; ?>
@@ -293,14 +303,16 @@ include '../includes/navbar.php';
     <h3 class="text-lg font-bold mt-6 mb-3">Gallery</h3>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <?php foreach ($gym_images as $image): ?>
-            <img src="../../gym/<?php echo htmlspecialchars($image['image_path']); ?>" alt="Gym Image" class="rounded-md">
+            <img src="../gym/uploads/gym_images/<?php echo htmlspecialchars($image['image_path']); ?>" alt="Gym Image"
+                class="rounded-md">
         <?php endforeach; ?>
     </div>
     <h3 class="text-lg font-bold mt-6 mb-3">Equipment</h3>
     <div class="space-y-2">
         <?php foreach ($gym_equipment as $item): ?>
             <div class="flex items-center gap-4">
-                <img src="../../gym/uploads/equipments/<?php echo htmlspecialchars($item['image']); ?>" alt="Equipment" class="h-16 w-16 rounded-md">
+                <img src="../gym/uploads/equipments/<?php echo htmlspecialchars($item['image']); ?>" alt="Equipment"
+                    class="h-16 w-16 rounded-md">
                 <div>
                     <input type="text" name="gym_equipment[]"
                         value="<?php echo htmlspecialchars($item['equipment_name']); ?>"
@@ -314,6 +326,6 @@ include '../includes/navbar.php';
         <button type="submit"
             class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:bg-blue-600">Update
             Gym</button>
+          <a href="manage_gym.php"><div class="w-full bg-red-500 text-center my-3 text-white py-2 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:bg-red-600">Cancel</div></a>
     </div>
-
 </form>

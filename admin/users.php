@@ -33,7 +33,7 @@ include '../includes/navbar.php';
             </thead>
             <tbody>
                 <?php foreach ($users as $user): ?>
-                <tr class="border-b">
+                <tr class="border-b text-center">
                     <td class="px-6 py-4"><?php echo $user['username']; ?></td>
                     <td class="px-6 py-4"><?php echo $user['email']; ?></td>
                     <td class="px-6 py-4"><?php echo $user['role']; ?></td>

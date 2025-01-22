@@ -3,7 +3,7 @@ session_start();
 require_once '../config/database.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: /gym/views/auth/login.php');
+    header('Location: /gym/login.php');
     exit();
 }
 
@@ -92,7 +92,7 @@ include '../includes/navbar.php';
                         <?php endif; ?>
                     </td>
                     <td class="px-6 py-4 text-sm font-medium">
-                        <a href="view-owner.php?id=<?php echo $owner['id']; ?>" 
+                        <a href="view-owners.php?id=<?php echo $owner['id']; ?>" 
                            class="text-blue-600 hover:text-blue-900 mr-3">View</a>
                         <?php if (!$owner['is_approved']): ?>
                             <a href="approve-owner.php?id=<?php echo $owner['id']; ?>" 

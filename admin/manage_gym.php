@@ -1,11 +1,11 @@
-<?php
+<?php 
 session_start();
 require '../config/database.php';
 $db = new GymDatabase();
 $conn = $db->getConnection();
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: /gym/views/auth/login.php');
+    header('Location: /gym/login.php');
     exit();
 }
 
@@ -31,15 +31,19 @@ if (isset($_GET['delete_gym_id'])) {
     exit;
 }
 
-// Fetch all gyms for listing
-$query = "SELECT * FROM gyms";
+// Fetch all gyms with their respective owner names
+$query = "
+    SELECT g.*, go.name AS owner_name
+    FROM gyms g
+    LEFT JOIN gym_owners go ON g.owner_id = go.id
+";
 $stmt = $conn->prepare($query);
 $stmt->execute();
-$gyms = $stmt->fetchAll();
+$gyms = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 include '../includes/navbar.php';
-
 ?>
+
 <div class="gyms-list p-6 bg-white rounded-lg shadow-lg">
     <h1 class="text-3xl font-semibold text-gray-800 mb-4">Manage Gyms</h1>
     <a href="add_gym.php" class="inline-block px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 mb-4">Add Gym</a>
@@ -59,7 +63,7 @@ include '../includes/navbar.php';
             <?php foreach ($gyms as $gym): ?>
                 <tr class="border-t">
                     <td class="px-4 py-2"><?php echo htmlspecialchars($gym['name']); ?></td>
-                    <td class="px-4 py-2"><?php echo htmlspecialchars($gym['owner_name']); ?></td>
+                    <td class="px-4 py-2"><?php echo htmlspecialchars($gym['owner_name'] ?? 'Unknown'); ?></td>
                     <td class="px-4 py-2"><?php echo htmlspecialchars($gym['city']); ?>, <?php echo htmlspecialchars($gym['state']); ?></td>
                     <td class="px-4 py-2"><?php echo htmlspecialchars($gym['max_capacity']); ?></td>
                     <td class="px-4 py-2"><?php echo htmlspecialchars($gym['status']); ?></td>
