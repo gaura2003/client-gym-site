@@ -1,64 +1,62 @@
 <?php
-
-require_once 'includes/auth.php';
+session_start();
 require_once 'config/database.php';
 
-
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'member') {
-    exit();
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
 }
 
 $db = new GymDatabase();
 $conn = $db->getConnection();
+$user_id = $_SESSION['user_id'];
 
-// Get user profile
+// Fetch user details
 $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$user = $stmt->fetch();
+$stmt->execute([$user_id]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Update profile
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'];
-    $email = $_POST['email'];
-    $full_name = $_POST['full_name'];
-
-    $stmt = $conn->prepare("UPDATE users SET username = ?, email = ? WHERE id = ?");
-    $stmt->execute([$username, $email,  $_SESSION['user_id']]);
-    $success = "Profile updated successfully!";
+if (!$user) {
+    echo "User not found.";
+    exit;
 }
 include 'includes/navbar.php';
 ?>
-
-    <div class="container mx-auto p-6">
-        <h1 class="text-3xl font-bold mb-6">My Profile</h1>
-        
-        <?php if (isset($success)): ?>
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                <?php echo $success; ?>
+    <div class="container mx-auto px-4 py-8">
+        <!-- Profile Card -->
+        <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+            <div class="bg-gray-800 text-white text-center p-6">
+                <div class="w-24 h-24 mx-auto rounded-full overflow-hidden border-4 border-gray-300">
+                    <img src="<?= htmlspecialchars($user['profile_image'] ?? 'default-profile.png') ?>" alt="Profile Image" class="object-cover w-full h-full">
+                </div>
+                <h2 class="mt-4 text-2xl font-semibold"><?= htmlspecialchars($user['username']) ?></h2>
+                <p class="text-gray-300"><?= htmlspecialchars($user['role']) ?></p>
             </div>
-        <?php endif; ?>
-
-        <div class="bg-white p-6 rounded-lg shadow">
-            <form method="POST" class="space-y-4">
-                <div>
-                    <label class="block mb-2">Username</label>
-                    <input type="text" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" 
-                           class="w-full p-2 border rounded">
+            <div class="p-6">
+                <!-- User Details -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-gray-700">Personal Details</h3>
+                    <div class="mt-2">
+                        <p class="text-gray-600"><strong>Email:</strong> <?= htmlspecialchars($user['email']) ?></p>
+                        <p class="text-gray-600"><strong>Phone:</strong> <?= htmlspecialchars($user['phone'] ?? 'Not provided') ?></p>
+                        <p class="text-gray-600"><strong>Status:</strong> <span class="capitalize"><?= htmlspecialchars($user['status']) ?></span></p>
+                    </div>
                 </div>
-                <div>
-                    <label class="block mb-2">Email</label>
-                    <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" 
-                           class="w-full p-2 border rounded">
+                <!-- Account Details -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-gray-700">Account Details</h3>
+                    <div class="mt-2">
+                        <p class="text-gray-600"><strong>Balance:</strong> ₹<?= number_format($user['balance'], 2) ?></p>
+                        <p class="text-gray-600"><strong>Joined:</strong> <?= date('d M Y', strtotime($user['created_at'])) ?></p>
+                        <p class="text-gray-600"><strong>Last Updated:</strong> <?= date('d M Y H:i:s', strtotime($user['updated_at'])) ?></p>
+                    </div>
                 </div>
-                <div>
-                    <label class="block mb-2">Full Name</label>
-                    <input type="text" name="full_name" value="<?php echo htmlspecialchars($user['username']); ?>" 
-                           class="w-full p-2 border rounded">
+                <!-- Action Buttons -->
+                <div class="flex justify-end gap-4 mt-6">
+                    <a href="edit_profile.php" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Edit Profile</a>
+                    <a href="logout.php" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Logout</a>
                 </div>
-                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                    Update Profile
-                </button>
-            </form>
+            </div>
         </div>
     </div>
-
+<?php include 'includes/footer.php'; ?>

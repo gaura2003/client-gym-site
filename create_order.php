@@ -3,11 +3,14 @@ session_start();
 require_once 'config/database.php';
 require_once 'vendor/autoload.php'; // Load Razorpay SDK
 
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
 use Razorpay\Api\Api;
 
+$apiKey = $_ENV['RAZORPAY_KEY_ID'];
+$apiSecret = $_ENV['RAZORPAY_KEY_SECRET'];
 
-$apiKey = "rzp_test_E5BNM56ZxxZAwk";
-$apiSecret = "uXo5UAsgnT7zglLrmsH749Je";
 
 $api = new Api($apiKey, $apiSecret);
 
@@ -63,3 +66,4 @@ echo json_encode([
     'key' => $apiKey,
     'plan_name' => $plan['tier'],
 ]);
+?>

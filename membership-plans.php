@@ -1,9 +1,11 @@
 <?php
 require_once 'config/database.php';
-
+require_once 'vendor/autoload.php';
 $db = new GymDatabase();
 $conn = $db->getConnection();
 
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
 // Fetch available membership plans
 $stmt = $conn->prepare("
@@ -54,7 +56,7 @@ $plans = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         Purchase Membership
                     </button>
                 <?php else: ?>
-                    <a href="/gym/views/auth/register.php?redirect=membership&plan_id=<?php echo $plan['id']; ?>"
+                    <a href="./register.php?redirect=membership&plan_id=<?php echo $plan['id']; ?>"
                         class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-center block">
                         Register to Subscribe
                     </a>
@@ -85,7 +87,8 @@ document.querySelectorAll('.purchaseMembershipBtn').forEach(button => {
         .then(response => response.json())
         .then(data => {
             const options = {
-                key: 'rzp_test_E5BNM56ZxxZAwk', // Replace with your Razorpay key
+                $apiKey = $_ENV['RAZORPAY_KEY_ID'];
+                key: <?php echo $apiKey ?>, 
                 amount: data.amount,
                 currency: 'INR',
                 name: '<?php echo htmlspecialchars($gym['name']); ?>',

@@ -1,4 +1,6 @@
 <?php
+include 'includes/navbar.php';
+
 session_start();
 require_once 'config/database.php';
 $db = new GymDatabase();
@@ -8,18 +10,60 @@ $user_id = $_SESSION['user_id'] ?? null; // Ensure user_id is set from session
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user_id) {
     $data = json_decode(file_get_contents('php://input'), true);
 
-
-
-    // Update payment status
-    $stmt = $conn->prepare("UPDATE payments SET status = 'completed', transaction_id = ? WHERE membership_id = ?");
-    $stmt->execute([$data['razorpay_payment_id'], $data['membership_id']]);
-
-    // Update membership status
-    $stmt = $conn->prepare("UPDATE user_memberships SET payment_status = 'paid' WHERE id = ?");
+    // Get the membership details to calculate the amount
+    $stmt = $conn->prepare("SELECT gmp.price, um.id, um.plan_id
+                            FROM user_memberships um
+                            JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
+                            WHERE um.id = ?");
     $stmt->execute([$data['membership_id']]);
+    $membership = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    if ($membership) {
+        // Get the membership price
+        $membership_price = $membership['price'];
 
+        // Check if user has enough balance
+        $stmt = $conn->prepare("SELECT balance FROM users WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user['balance'] >= $membership_price) {
+            // Deduct the membership price from the user's balance
+            $new_balance = $user['balance'] - $membership_price;
+            $update_balance_stmt = $conn->prepare("UPDATE users SET balance = ? WHERE user_id = ?");
+            $update_balance_stmt->execute([$new_balance, $user_id]);
+
+            // Record the transaction for the user
+            $transaction_stmt = $conn->prepare("INSERT INTO transactions (user_id, gym_id, amount, transaction_type) 
+                                                VALUES (?, ?, ?, 'debit')");
+            $transaction_stmt->execute([$user_id, $membership['gym_id'], $membership_price]);
+
+            // Credit the gym's balance
+            $update_gym_balance_stmt = $conn->prepare("UPDATE gyms SET balance = balance + ? WHERE gym_id = ?");
+            $update_gym_balance_stmt->execute([$membership_price, $membership['gym_id']]);
+
+            // Record the transaction for the gym
+            $gym_transaction_stmt = $conn->prepare("INSERT INTO transactions (user_id, gym_id, amount, transaction_type) 
+                                                    VALUES (?, ?, ?, 'credit')");
+            $gym_transaction_stmt->execute([$user_id, $membership['gym_id'], $membership_price]);
+
+            // Update payment status
+            $stmt = $conn->prepare("UPDATE payments SET status = 'completed', transaction_id = ? WHERE membership_id = ?");
+            $stmt->execute([$data['razorpay_payment_id'], $data['membership_id']]);
+
+            // Update membership status
+            $stmt = $conn->prepare("
+            UPDATE user_memberships 
+            SET payment_status = 'paid', amount = ? 
+            WHERE id = ?");
+        $stmt->execute([$membership_price, $data['membership_id']]);
+        } else {
+            // Handle case where user balance is not enough
+            echo "Insufficient balance.";
+        }
+    }
 }
+
 // Fetch gym_id for the purchased membership
 $stmt = $conn->prepare("
   SELECT um.*, gmp.tier as plan_name, gmp.inclusions, gmp.duration,
@@ -36,7 +80,6 @@ $stmt = $conn->prepare("
 $stmt->execute([$user_id]);
 $membership = $stmt->fetch(PDO::FETCH_ASSOC);
 
-include 'includes/navbar.php';
 ?>
 
 <div class="container mx-auto px-4 py-8">
