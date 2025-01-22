@@ -19,7 +19,6 @@ include '../includes/navbar.php';
         <h1 class="text-2xl font-bold">Manage Users</h1>
         <a href="add.php" class="bg-blue-500 text-white px-4 py-2 rounded">Add New User</a>
     </div>
-
     <div class="bg-white shadow-md rounded">
         <table class="min-w-full">
             <thead>

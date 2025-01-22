@@ -102,8 +102,22 @@ include 'includes/navbar.php';
                     </select>
                 </div>
 
-                <!-- Amenities Filter -->
+                <!-- Price Filter -->
                 <div>
+                    <label class="block text-sm font-medium text-gray-700">Price</label>
+                    <div class="flex space-x-4">
+                        <div>
+                            <input type="number" name="min_price" value="<?php echo htmlspecialchars($min_price); ?>"
+                                   class="block w-full rounded-md border border-gray-300 p-3" placeholder="Min Price">
+                        </div>
+                        <div>
+                            <input type="number" name="max_price" value="<?php echo htmlspecialchars($max_price); ?>"
+                                   class="block w-full rounded-md border border-gray-300 p-3" placeholder="Max Price">
+                        </div>
+                    </div>
+                </div>
+                 <!-- Amenities Filter -->
+                 <div>
                     <label class="block text-sm font-medium text-gray-700">Amenities</label>
                     <div class="mt-2 space-y-2">
                         <?php
@@ -118,21 +132,6 @@ include 'includes/navbar.php';
                                 <span class="ml-2"><?php echo ucfirst($amenity); ?></span>
                             </label>
                         <?php } endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Price Filter -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Price</label>
-                    <div class="flex space-x-4">
-                        <div>
-                            <input type="number" name="min_price" value="<?php echo htmlspecialchars($min_price); ?>"
-                                   class="block w-full rounded-md border border-gray-300 p-3" placeholder="Min Price">
-                        </div>
-                        <div>
-                            <input type="number" name="max_price" value="<?php echo htmlspecialchars($max_price); ?>"
-                                   class="block w-full rounded-md border border-gray-300 p-3" placeholder="Max Price">
-                        </div>
                     </div>
                 </div>
             </div>
