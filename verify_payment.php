@@ -1,17 +1,28 @@
 <?php
 session_start();
 require_once 'config/database.php';
+require_once 'vendor/autoload.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit();
-}
+$db = new GymDatabase();
+$conn = $db->getConnection();
 
-$keyId = 'rzp_test_E5BNM56ZxxZAwk';
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+// Get all parameters from URL
 $order_id = $_GET['order_id'];
 $membership_id = $_GET['membership_id'];
 $amount = $_GET['amount'];
 $plan_name = $_GET['plan_name'];
+$gym_id = $_GET['gym_id'];
+$plan_id = $_GET['plan_id'];
+$user_id = $_GET['user_id'];
+$plan_price = $_GET['plan_price'];
+$plan_duration = $_GET['plan_duration'];
+$start_date = $_GET['start_date'];
+$end_date = $_GET['end_date'];
+
+$keyId = $_ENV['RAZORPAY_KEY_ID'];
 
 include 'includes/navbar.php';
 ?>
@@ -21,8 +32,11 @@ include 'includes/navbar.php';
         <h1 class="text-2xl font-bold mb-4">Complete Payment</h1>
         
         <div class="mb-6">
-            <p class="text-gray-600">Plan: <?php echo htmlspecialchars($plan_name); ?></p>
-            <p class="text-gray-600">Amount: ₹<?php echo number_format($amount/100, 2); ?></p>
+            <p class="text-gray-600 mb-2">Plan: <?php echo htmlspecialchars($plan_name); ?></p>
+            <p class="text-gray-600 mb-2">Duration: <?php echo htmlspecialchars($plan_duration); ?></p>
+            <p class="text-gray-600 mb-2">Start Date: <?php echo date('d M Y', strtotime($start_date)); ?></p>
+            <p class="text-gray-600 mb-2">End Date: <?php echo date('d M Y', strtotime($end_date)); ?></p>
+            <p class="text-gray-600 mb-4">Amount: ₹<?php echo number_format($amount/100, 2); ?></p>
         </div>
 
         <button id="payButton" 
@@ -56,9 +70,6 @@ document.getElementById('payButton').onclick = function() {
     };
     
     var rzp1 = new Razorpay(options);
-    rzp1.on('payment.failed', function (response){
-        alert("Payment Failed: " + response.error.description);
-    });
     rzp1.open();
 };
 
@@ -72,20 +83,23 @@ function verifyPayment(response) {
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_order_id: response.razorpay_order_id,
             razorpay_signature: response.razorpay_signature,
-            membership_id: <?php echo $membership_id; ?>
+            membership_id: <?php echo $membership_id; ?>,
+            start_date: '<?php echo $start_date; ?>',
+            end_date: '<?php echo $end_date; ?>'
         })
     })
     .then(response => response.json())
     .then(data => {
         if(data.success) {
-            window.location.href = 'payment_success.php?status=success';
+            window.location.href = 'payment_success.php?membership_id=' + <?php echo $membership_id; ?>;
         } else {
-            alert("Something went wrong with the payment verification. Please try again.");
-            window.location.href = 'payment_failed.php';
+            alert(data.message || "Payment verification failed");
+            window.location.href = 'payment_success.php?membership_id=' + <?php echo $membership_id; ?>;
         }
     })
     .catch(error => {
-        alert("Error processing payment: " + error.message);
+        console.error("Error:", error);
+        window.location.href = 'payment_success.php?membership_id=' + <?php echo $membership_id; ?>;
     });
 }
 </script>

@@ -1,45 +1,83 @@
 <?php
 session_start();
 require_once 'config/database.php';
+require_once 'vendor/autoload.php';
+
+$db = new GymDatabase();
+$conn = $db->getConnection();
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit();
 }
 
+$user_id = $_SESSION['user_id'];
 $plan_id = filter_input(INPUT_POST, 'plan_id', FILTER_VALIDATE_INT);
 $gym_id = filter_input(INPUT_POST, 'gym_id', FILTER_VALIDATE_INT);
 
-$db = new GymDatabase();
-$conn = $db->getConnection();
+if (!$plan_id || !$gym_id) {
+    header('Location: error.php?message=invalid_input');
+    exit();
+}
 
-// Fetch plan details
 $stmt = $conn->prepare("SELECT * FROM gym_membership_plans WHERE plan_id = ? AND gym_id = ?");
 $stmt->execute([$plan_id, $gym_id]);
 $plan = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Calculate membership duration
+if (!$plan) {
+    header('Location: error.php?message=plan_not_found');
+    exit();
+}
+
 $duration_mapping = [
     'Daily' => 1,
     'Weekly' => 7,
+    'Bi-Weekly' => 14,
+    'Semi-Monthly' => 15,
     'Monthly' => 30,
+    'Quarterly' => 90,
+    'Half Yearly' => 180,
     'Yearly' => 365
 ];
 
 $duration_days = $duration_mapping[$plan['duration']];
-$start_date = date('Y-m-d');
-$end_date = date('Y-m-d', strtotime("+$duration_days days"));
+
+// Calculate dates using DateTime for accuracy
+$start_date_obj = new DateTime();
+$start_date_obj->setTime(0, 0, 0); // Set time to midnight
+$end_date_obj = clone $start_date_obj;
+$end_date_obj->modify("+$duration_days days");
+
+// Format dates for database
+$start_date = $start_date_obj->format('Y-m-d');
+$end_date = $end_date_obj->format('Y-m-d');
 
 // Create membership record
-$stmt = $conn->prepare("INSERT INTO user_memberships (user_id, plan_id, gym_id, start_date, end_date, status, payment_status) VALUES (?, ?, ?, ?,?, 'active', 'pending')");
-$stmt->execute([$_SESSION['user_id'], $plan_id,$gym_id, $start_date, $end_date]);
+$stmt = $conn->prepare("
+    INSERT INTO user_memberships (
+        amount, gym_id, user_id, plan_id, 
+        start_date, end_date, status, payment_status
+    ) VALUES (
+        ?, ?, ?, ?, ?, ?, 'active', 'pending'
+    )
+");
+$stmt->execute([$plan['price'], $gym_id, $user_id, $plan_id, $start_date, $end_date]);
+
+
 $membership_id = $conn->lastInsertId();
 
-// Razorpay API Configuration
-$keyId = "rzp_test_E5BNM56ZxxZAwk";
-$keySecret = "uXo5UAsgnT7zglLrmsH749Je";
+// Razorpay Configuration and remaining code...
+$keyId = $_ENV['RAZORPAY_KEY_ID'];
+$keySecret = $_ENV['RAZORPAY_KEY_SECRET'];
 
-// Create Razorpay Order using cURL
+if (!$keyId || !$keySecret) {
+    header('Location: error.php?message=razorpay_config_missing');
+    exit();
+}
+
 $data = [
     'receipt' => 'membership_' . $membership_id,
     'amount' => $plan['price'] * 100,
@@ -47,7 +85,7 @@ $data = [
     'notes' => [
         'membership_id' => $membership_id,
         'plan_id' => $plan_id,
-        'user_id' => $_SESSION['user_id']
+        'user_id' => $user_id
     ]
 ];
 
@@ -62,9 +100,22 @@ curl_close($ch);
 
 $razorpayOrder = json_decode($result, true);
 
+if (!isset($razorpayOrder['id'])) {
+    error_log('Razorpay order creation failed: ' . json_encode($razorpayOrder));
+    header('Location: error.php?message=payment_init_failed');
+    exit();
+}
+
 // Insert payment record
-$stmt = $conn->prepare("INSERT INTO payments (user_id, gym_id, membership_id, amount, payment_method, transaction_id, status) VALUES (?,?, ?, ?, 'razorpay', ?, 'pending')");
-$stmt->execute([$_SESSION['user_id'],$gym_id, $membership_id, $plan['price'], $razorpayOrder['id']]);
+$stmt = $conn->prepare("
+    INSERT INTO payments (
+        gym_id, user_id, membership_id, amount, 
+        payment_method, transaction_id, status
+    ) VALUES (
+        ?, ?, ?, ?, 'razorpay', ?, 'pending'
+    )
+");
+$stmt->execute([$gym_id, $user_id, $membership_id, $plan['price'], $razorpayOrder['id']]);
 
 $response = [
     'key' => $keyId,
@@ -78,15 +129,21 @@ $response = [
 header('Content-Type: application/json');
 echo json_encode($response);
 
-// After getting Razorpay order response, redirect to payment verification page
+
 $redirectUrl = "verify_payment.php?" . http_build_query([
     'order_id' => $razorpayOrder['id'],
     'membership_id' => $membership_id,
     'amount' => $data['amount'],
-    'plan_name' => $plan['tier']
+    'plan_name' => $plan['tier'],
+    'gym_id' => $gym_id,
+    'plan_id' => $plan_id,
+    'user_id' => $user_id,
+    'plan_price' => $plan['price'],
+    'plan_duration' => $plan['duration'],
+   'start_date' => $start_date,
+   'end_date' => $end_date,
 ]);
 
 header("Location: " . $redirectUrl);
 exit();
-
 ?>

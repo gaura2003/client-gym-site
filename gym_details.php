@@ -221,8 +221,8 @@ include 'includes/navbar.php';
                         <?php echo htmlspecialchars($plan['inclusions']); ?>
                     </div>
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <a href="buy_membership.php?plan_id=<?php echo $plan['plan_id']; ?>&gym_id=<?php echo $gym_id; ?>"
-                            class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-center block">
+                        <a href="buy_membership.php?plan_id=<?php echo $plan['plan_id']; ?>&gym_id=<?php echo $gym_id; ?>&price=<?php echo $plan['price']; ?>"
+                            class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-center block" id="select-plan">
                             Select Plan
                         </a>
                     <?php else: ?>
@@ -279,66 +279,3 @@ include 'includes/navbar.php';
         <?php endif; ?>
     </div>
 </div>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-
-<script>
-    document.querySelectorAll('.select-plan').forEach(button => {
-        button.addEventListener('click', function() {
-            const planId = this.dataset.planId;
-
-            fetch('create_order.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        plan_id: planId
-                    }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        alert(data.error);
-                        return;
-                    }
-
-                    const options = {
-                        key: data.key,
-                        amount: data.amount,
-                        currency: data.currency,
-                        name: "Gym Membership",
-                        description: `Buy ${data.plan_name} Membership`,
-                        order_id: data.order_id,
-                        handler: function(response) {
-                            fetch('verify_payment.php', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({
-                                        razorpay_order_id: response.razorpay_order_id,
-                                        razorpay_payment_id: response.razorpay_payment_id,
-                                        razorpay_signature: response.razorpay_signature,
-                                    }),
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.success) {
-                                        alert('Payment Successful!');
-                                        location.reload();
-                                    } else {
-                                        alert('Payment failed. Please try again.');
-                                    }
-                                });
-                        },
-                        theme: {
-                            color: "#3399cc"
-                        },
-                    };
-
-                    const rzp1 = new Razorpay(options);
-                    rzp1.open();
-                });
-        });
-    });
-</script>

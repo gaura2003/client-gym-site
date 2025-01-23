@@ -11,128 +11,130 @@ $owner_id = $_SESSION['owner_id'];
 $db = new GymDatabase();
 $conn = $db->getConnection();
 
-// Get gym ID first
+// Get gym details
 $stmt = $conn->prepare("SELECT gym_id, name FROM gyms WHERE owner_id = :owner_id");
 $stmt->bindParam(':owner_id', $owner_id);
 $stmt->execute();
 $gym = $stmt->fetch(PDO::FETCH_ASSOC);
 
-include '../includes/navbar.php';
-
 if (!$gym) {
-    ?>
+
+    echo '
     <div class="min-h-screen bg-gray-100 py-12">
         <div class="max-w-3xl mx-auto px-4">
             <div class="bg-white rounded-lg shadow-lg p-8 text-center">
                 <h1 class="text-2xl font-bold mb-4">Welcome to Gym Management System</h1>
-                <p class="text-gray-600 mb-6">Let's get started by setting up your gym profile.</p>
+                <p class="text-gray-600 mb-6">Let\'s get started by setting up your gym profile.</p>
                 
                 <div class="space-y-4">
                     <svg class="w-64 h-64 mx-auto text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
-                    <a href="add gym.php" 
+                    <a href="add_gym.php" 
                        class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200">
                         Create Your Gym Profile
                     </a>
                 </div>
             </div>
         </div>
-    </div>
-    <?php
-    exit;
+    </div>';
+
 }
 
 $gym_id = $gym['gym_id'];
 
-// Initialize stats array
-$stats = [
-    'active_memberships' => 0,
+// Fetch Analytics Data
+$analytics = [
+    'daily_visits' => 0,
+    'active_members' => 0,
     'monthly_revenue' => 0,
+    'total_revenue' => 0,
     'total_classes' => 0,
-    'total_equipment' => 0,
-    'total_reviews' => 0,
-    'average_rating' => 0,
-    'total_bookings' => 0
+    'equipment_count' => 0,
+    'review_count' => 0,
+    'avg_rating' => 0,
+    'class_bookings' => 0,
+    'membership_distribution' => [],
+    'revenue_by_plan' => []
 ];
 
+// Daily Visits
+$stmt = $conn->prepare("
+    SELECT COUNT(*) as visits 
+    FROM schedules 
+    WHERE gym_id = ? 
+    AND DATE(start_date) = CURRENT_DATE
+");
+$stmt->execute([$gym_id]);
+$analytics['daily_visits'] = $stmt->fetch(PDO::FETCH_ASSOC)['visits'];
 
+// Active Members
+$stmt = $conn->prepare("
+    SELECT COUNT(*) as members 
+    FROM user_memberships 
+    WHERE gym_id = ? 
+    AND status = 'active' 
+    AND payment_status = 'paid'
+    AND CURRENT_DATE BETWEEN start_date AND end_date
+");
+$stmt->execute([$gym_id]);
+$analytics['active_members'] = $stmt->fetch(PDO::FETCH_ASSOC)['members'];
+
+// Monthly Revenue
+$stmt = $conn->prepare("
+    SELECT COALESCE(SUM(amount), 0) as revenue 
+    FROM payments 
+    WHERE gym_id = ? 
+    AND status = 'completed'
+    AND MONTH(payment_date) = MONTH(CURRENT_DATE)
+    AND YEAR(payment_date) = YEAR(CURRENT_DATE)
+");
+$stmt->execute([$gym_id]);
+$analytics['monthly_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['revenue'];
+
+// Total Revenue
+$stmt = $conn->prepare("
+    SELECT COALESCE(SUM(amount), 0) as total 
+    FROM payments 
+    WHERE gym_id = ? 
+    AND status = 'completed'
+");
+$stmt->execute([$gym_id]);
+$analytics['total_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+// Equipment Count
 $stmt = $conn->prepare("
     SELECT COUNT(*) as count 
-    FROM user_memberships um 
-    JOIN membership_plans mp ON um.plan_id = mp.id 
-    WHERE mp.id = :gym_id 
-    AND um.status = 'active' 
-    AND CURRENT_DATE BETWEEN um.start_date AND um.end_date
+    FROM gym_equipment 
+    WHERE gym_id = ?
 ");
-$stmt->bindParam(':gym_id', $gym_id);
-$stmt->execute();
-$stats['active_memberships'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+$stmt->execute([$gym_id]);
+$analytics['equipment_count'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-$monthly_query = "
-SELECT COALESCE(SUM(p.amount), 0) as monthly
-FROM payments p
-JOIN gyms g ON p.gym_id = g.gym_id
-WHERE g.owner_id = ?
-AND p.status = 'completed'
-AND MONTH(p.payment_date) = MONTH(CURRENT_DATE())
-AND YEAR(p.payment_date) = YEAR(CURRENT_DATE())
-";
-$monthly_stmt = $conn->prepare($monthly_query);
-$monthly_stmt->execute([$owner_id]);
-$monthly_earnings = $monthly_stmt->fetch(PDO::FETCH_ASSOC)['monthly'];
-
-$stmt = $conn->prepare("SELECT COUNT(*) as count FROM gym_classes WHERE gym_id = :gym_id AND status = 'active'");
-$stmt->bindParam(':gym_id', $gym_id);
-$stmt->execute();
-$stats['total_classes'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
-
-$stmt = $conn->prepare("SELECT COUNT(*) as count FROM gym_equipment WHERE gym_id = :gym_id");
-$stmt->bindParam(':gym_id', $gym_id);
-$stmt->execute();
-$stats['total_equipment'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
-
+// Reviews Stats
 $stmt = $conn->prepare("
     SELECT COUNT(*) as count, COALESCE(AVG(rating), 0) as avg_rating 
     FROM reviews 
-    WHERE gym_id = :gym_id AND status = 'approved'
+    WHERE gym_id = ? 
+    AND status = 'approved'
 ");
-$stmt->bindParam(':gym_id', $gym_id);
-$stmt->execute();
+$stmt->execute([$gym_id]);
 $reviews = $stmt->fetch(PDO::FETCH_ASSOC);
-$stats['total_reviews'] = $reviews['count'];
-$stats['average_rating'] = number_format($reviews['avg_rating'], 1);
+$analytics['review_count'] = $reviews['count'];
+$analytics['avg_rating'] = number_format($reviews['avg_rating'], 1);
 
+// Class Bookings
 $stmt = $conn->prepare("
-    SELECT COUNT(*) as count 
-    FROM class_bookings cb
-    JOIN gym_classes gc ON cb.class_id = gc.id
-    WHERE gc.gym_id = :gym_id 
+    SELECT COUNT(*) as bookings 
+    FROM class_bookings cb 
+    JOIN gym_classes gc ON cb.class_id = gc.id 
+    WHERE gc.gym_id = ? 
     AND cb.status = 'booked'
 ");
-$stmt->bindParam(':gym_id', $gym_id);
-$stmt->execute();
-$stats['total_bookings'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+$stmt->execute([$gym_id]);
+$analytics['class_bookings'] = $stmt->fetch(PDO::FETCH_ASSOC)['bookings'];
 
-// Add this revenue calculation code after getting $gym_id
-$revenueQuery = "
-    SELECT 
-        COALESCE(SUM(CASE 
-            WHEN source_type = 'visit' THEN amount 
-            ELSE 0 
-        END), 0) as visit_revenue,
-        COALESCE(SUM(amount), 0) as total_revenue,
-        COUNT(DISTINCT CASE WHEN source_type = 'visit' THEN date END) as visit_days
-    FROM gym_revenue 
-    WHERE gym_id = ? 
-    AND MONTH(date) = MONTH(CURRENT_DATE())
-    AND YEAR(date) = YEAR(CURRENT_DATE())
-";
-
-$revenueStmt = $conn->prepare($revenueQuery);
-$revenueStmt->execute([$gym_id]);
-$revenue = $revenueStmt->fetch(PDO::FETCH_ASSOC);
-
+include '../includes/navbar.php';
 ?>
 
 <div class="container mx-auto px-4 py-8">
@@ -141,75 +143,70 @@ $revenue = $revenueStmt->fetch(PDO::FETCH_ASSOC);
         <span class="text-gray-600">Welcome back!</span>
     </div>
 
+    <!-- Analytics Grid -->
     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        <!-- Members Stats -->
-        <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+        <!-- Daily Visits Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="flex items-center justify-between">
-                <h3 class="text-gray-500 text-sm font-medium">Total Members</h3>
-                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Members</span>
+                <h3 class="text-gray-500 text-sm font-medium">Daily Visits</h3>
+                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Today</span>
             </div>
-        
-            <p class="text-sm text-gray-600 mt-1">Active: <?php echo number_format($stats['active_memberships']); ?></p>
+            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($analytics['daily_visits']); ?></p>
         </div>
-        <!-- Revenue Stats Card -->
-<div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
-    <div class="flex items-center justify-between">
-        <h3 class="text-gray-500 text-sm font-medium">Revenue Statistics</h3>
-        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Monthly</span>
-    </div>
-    <div class="mt-2">
-        <p class="text-3xl font-bold text-gray-900">₹<?php echo number_format($revenue['visit_revenue'], 2); ?></p>
-        <p class="text-sm text-gray-600">Visit Revenue</p>
-    </div>
-    <div class="mt-2">
-        <p class="text-2xl font-semibold text-gray-900">₹<?php echo number_format($revenue['total_revenue'], 2); ?></p>
-        <p class="text-sm text-gray-600">Total Revenue</p>
-    </div>
-    <p class="text-sm text-gray-500 mt-2">Visits this month: <?php echo $revenue['visit_days']; ?> days</p>
-</div>
 
-        <!-- Revenue Stats -->
-        <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+        <!-- Active Members Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-gray-500 text-sm font-medium">Active Members</h3>
+                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Current</span>
+            </div>
+            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($analytics['active_members']); ?></p>
+        </div>
+
+        <!-- Monthly Revenue Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="flex items-center justify-between">
                 <h3 class="text-gray-500 text-sm font-medium">Monthly Revenue</h3>
-                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Income</span>
+                <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">This Month</span>
             </div>
-            <p class="text-3xl font-bold <?php echo ($monthly_earnings + $revenue['total_revenue'] <= 0) ? 'text-red-600' : 'text-green-600'; ?> mt-2">
-    ₹<?php echo number_format(abs($monthly_earnings + $revenue['total_revenue']), 2); ?>
-</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">₹<?php echo number_format($analytics['monthly_revenue'], 2); ?></p>
+        </div>
 
-        </div>
-        
-        <!-- Classes Stats -->
-        <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+        <!-- Total Revenue Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="flex items-center justify-between">
-                <h3 class="text-gray-500 text-sm font-medium">Total Classes</h3>
-                <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">Classes</span>
+                <h3 class="text-gray-500 text-sm font-medium">Total Revenue</h3>
+                <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">All Time</span>
             </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($stats['total_classes']); ?></p>
-            <p class="text-sm text-gray-600 mt-1">Bookings: <?php echo number_format($stats['total_bookings']); ?></p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">₹<?php echo number_format($analytics['total_revenue'], 2); ?></p>
         </div>
-        
-        <!-- Equipment Stats -->
-        <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+
+        <!-- Equipment Count Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="flex items-center justify-between">
                 <h3 class="text-gray-500 text-sm font-medium">Equipment</h3>
-                <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded">Assets</span>
+                <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">Total</span>
             </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($stats['total_equipment']); ?></p>
+            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($analytics['equipment_count']); ?></p>
         </div>
-        
-        <!-- Reviews Stats -->
-        <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+
+        <!-- Reviews Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="flex items-center justify-between">
                 <h3 class="text-gray-500 text-sm font-medium">Reviews</h3>
-                <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">Feedback</span>
+                <span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded">Rating</span>
             </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($stats['total_reviews']); ?></p>
-            <div class="flex items-center mt-1">
-                <span class="text-sm text-gray-600">Rating:</span>
-                <span class="text-sm font-medium text-yellow-500 ml-1"><?php echo $stats['average_rating']; ?>/5</span>
+            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo $analytics['avg_rating']; ?>/5</p>
+            <p class="text-sm text-gray-600 mt-1">Total Reviews: <?php echo number_format($analytics['review_count']); ?></p>
+        </div>
+
+        <!-- Class Bookings Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-gray-500 text-sm font-medium">Class Bookings</h3>
+                <span class="bg-pink-100 text-pink-800 text-xs font-medium px-2.5 py-0.5 rounded">Active</span>
             </div>
+            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($analytics['class_bookings']); ?></p>
         </div>
     </div>
 

@@ -62,7 +62,47 @@ $counts['payments'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 $stmt = $conn->query("SELECT COUNT(*) as total FROM notifications");
 $counts['notifications'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
+// Fetch admin revenue statistics
+$stmt = $conn->query("
+    SELECT 
+        SUM(admin_cut) as total_admin_revenue,
+        COUNT(*) as total_transactions,
+        SUM(CASE WHEN DATE(date) = CURRENT_DATE THEN admin_cut ELSE 0 END) as today_revenue,
+        SUM(CASE WHEN MONTH(date) = MONTH(CURRENT_DATE) THEN admin_cut ELSE 0 END) as monthly_revenue
+    FROM gym_revenue
+");
+$revenue_stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
+// Fetch revenue by tier
+$stmt = $conn->query("
+    SELECT 
+        gmp.tier,
+        COUNT(*) as visit_count,
+        SUM(gr.admin_cut) as tier_revenue
+    FROM gym_revenue gr
+    JOIN schedules s ON gr.schedule_id = s.id
+    JOIN user_memberships um ON s.membership_id = um.id
+    JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
+    GROUP BY gmp.tier
+");
+$tier_revenue = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch recent transactions
+$stmt = $conn->query("
+    SELECT 
+        gr.date,
+        gr.admin_cut,
+        g.name as gym_name,
+        gmp.tier
+    FROM gym_revenue gr
+    JOIN gyms g ON gr.gym_id = g.gym_id
+    JOIN schedules s ON gr.schedule_id = s.id
+    JOIN user_memberships um ON s.membership_id = um.id
+    JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
+    ORDER BY gr.date DESC
+    LIMIT 10
+");
+$recent_transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 include '../includes/navbar.php';
 ?><?php
 // Add this to your existing database queries:
@@ -76,8 +116,10 @@ $counts['monthly_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 ?>
 
 <div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center">
     <h1 class="text-3xl font-bold mb-8">Admin Dashboard</h1>
-    
+    <button id="distribute-revenue" onclick="distributeRevenue()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Distribute Revenues</button>
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Users & Members Card -->
         <div class="bg-white rounded-lg shadow-lg p-6">
@@ -124,7 +166,81 @@ $counts['monthly_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             <p class="text-sm text-gray-600">Images: <?php echo number_format($counts['gym_images']); ?></p>
             <p class="text-sm text-gray-600">Monthly Revenue: ₹<?php echo number_format($counts['monthly_revenue'], 2); ?></p>
         </div>
-        <button id="distribute-revenue" onclick="distributeRevenue()">Distribute Revenues</button>
+
+    
+<div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">Total Revenue</h3>
+            <p class="text-3xl font-bold text-blue-600">
+                ₹<?= number_format($revenue_stats['total_admin_revenue'], 2) ?>
+            </p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">Today's Revenue</h3>
+            <p class="text-3xl font-bold text-green-600">
+                ₹<?= number_format($revenue_stats['today_revenue'], 2) ?>
+            </p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">Monthly Revenue</h3>
+            <p class="text-3xl font-bold text-purple-600">
+                ₹<?= number_format($revenue_stats['monthly_revenue'], 2) ?>
+            </p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">Total Transactions</h3>
+            <p class="text-3xl font-bold text-indigo-600">
+                <?= number_format($revenue_stats['total_transactions']) ?>
+            </p>
+        </div>
+    </div>
+
+    <!-- Revenue Details -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
+        <!-- Revenue by Tier -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-xl font-semibold mb-4">Revenue by Tier</h3>
+            <div class="space-y-4">
+                <?php foreach ($tier_revenue as $tier): ?>
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium"><?= $tier['tier'] ?></span>
+                        <span class="text-gray-600">
+                            ₹<?= number_format($tier['tier_revenue'], 2) ?>
+                            <span class="text-sm text-gray-500">
+                                (<?= $tier['visit_count'] ?> visits)
+                            </span>
+                        </span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-xl font-semibold mb-4">Recent Transactions</h3>
+            <div class="space-y-4">
+                <?php foreach ($recent_transactions as $transaction): ?>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-medium"><?= htmlspecialchars($transaction['gym_name']) ?></p>
+                            <p class="text-sm text-gray-500">
+                                <?= date('d M Y', strtotime($transaction['date'])) ?>
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">₹<?= number_format($transaction['admin_cut'], 2) ?></p>
+                            <p class="text-sm text-gray-500"><?= $transaction['tier'] ?></p>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+
+    </div>
+        
 <script>
     function distributeRevenue() {
         fetch('distribute_revenue.php', {
@@ -141,6 +257,5 @@ $counts['monthly_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
         .catch(error => console.error('Error:', error));
     }
 </script>
-
-    </div>
+    
 </div>

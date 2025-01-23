@@ -131,6 +131,8 @@ if (!isset($_SESSION['owner_id'])) {
                 <option value="Daily">Daily</option>
                 <option value="Weekly">Weekly</option>
                 <option value="Monthly">Monthly</option>
+                <option value="Monthly">3 Months</option>
+                <option value="Monthly">6 Months</option>
                 <option value="Yearly">Yearly</option>
               </select>
               <input type="number" name="membership_plans[0][price]" placeholder="Price" class="border rounded-lg p-2 w-full" required>

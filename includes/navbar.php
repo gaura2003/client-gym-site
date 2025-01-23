@@ -3,13 +3,33 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $role = $_SESSION['role'] ?? '';
 $isLoggedIn = isset($_SESSION['user_id']) || isset($_SESSION['owner_id']);
 $user_id = $_SESSION['user_id'] ?? ($_SESSION['owner_id'] ?? null);
-$isAdmin = $role === 'admin';
-$isOwner = $role === 'owner';
-$isUser = $role === 'user';
 
-include '../config/database.php';
+class NavbarDatabase
+{
+    private $host = "localhost";
+    private $db_name = "gym-db";
+    private $username = "root";
+    private $password = "";
+    public $conn;
 
-$db = new GymDatabase();
+    public function getConnection()
+    {
+        $this->conn = null;
+        try {
+            $this->conn = new PDO(
+                "mysql:host=" . $this->host . ";dbname=" . $this->db_name,
+                $this->username,
+                $this->password
+            );
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch (PDOException $e) {
+            echo "Connection Error: " . $e->getMessage();
+        }
+        return $this->conn;
+    }
+}
+
+$db = new NavbarDatabase();
 $conn = $db->getConnection();
 
 // Get unread notifications count
@@ -60,7 +80,7 @@ if ($isLoggedIn) {
                             <a href="/gym/admin/see-gym-earn.php"
                                 class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Gym
                                 Earnings</a>
-                            <a href="/gym/admin/cut-of-chart.php"
+                                <a href="/gym/admin/cut-off-chart.php"
                                 class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Cut Offs</a>
                         <?php elseif ($role === 'member' && isset($_SESSION['user_id'])): ?>
                             <a href="/gym/dashboard.php"

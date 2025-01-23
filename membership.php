@@ -23,11 +23,11 @@
     $membership = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
+<?php if ($membership): ?>
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">Your Membership</h2>
-            <?php if ($membership): ?>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Your Membership</h2>
                 <span class="px-4 py-2 bg-green-100 text-green-800 rounded-full">
                     Active
                 </span>
@@ -57,16 +57,7 @@
                     </ul>
                 </div>
             </div>
-        <?php else: ?>
-            <div class="text-center py-8">
-                <p class="text-gray-600 mb-4">You don't have an active membership.</p>
-                <a href="gyms.php" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                    Browse Gyms
-                </a>
-            </div>
-        <?php endif; ?>
-    </div>
-    <div class="col-span-2 mt-6 flex gap-4 justify-center">
+            <div class="col-span-2 mt-6 flex gap-4 justify-center">
             <a href="schedule.php?gym_id=<?php echo $membership['gym_id']; ?>"
                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,4 +76,10 @@
                 View My Schedule
             </a>
         </div>
+       
+    </div>
 </div>
+<?php else: 
+            
+            include './gym.php';
+           endif; ?>
