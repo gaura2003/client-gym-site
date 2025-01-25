@@ -62,7 +62,7 @@ $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <?php if($schedules): ?>
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">My Workout Schedule</h1>
-        <a href="schedule_workout.php" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+        <a href="schedule_workout.php" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-shadow shadow-md hover:shadow-lg">
             Schedule New Workout
         </a>
     </div>
@@ -129,27 +129,33 @@ $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <!-- Pagination -->
-    <div class="flex justify-center mt-6">
-        <nav class="flex items-center space-x-4">
-            <!-- Previous Button -->
-            <?php if ($page > 1): ?>
-                <a href="?page=<?= $page - 1 ?>" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">&laquo; Previous</a>
-            <?php else: ?>
-                <span class="px-4 py-2 bg-gray-200 text-gray-400 rounded">Previous</span>
-            <?php endif; ?>
+    <div class="flex justify-center mt-8">
+      <nav class="flex items-center space-x-4">
+        <!-- Previous Button -->
+        <?php if ($page > 1): ?>
+          <a href="?page=<?= $page - 1 ?>" class="px-5 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+            &laquo; Previous
+          </a>
+        <?php else: ?>
+          <span class="px-5 py-2 bg-gray-200 text-gray-400 rounded-lg">Previous</span>
+        <?php endif; ?>
 
-            <!-- Page Numbers -->
-            <?php for ($i = max(1, $page - 1); $i <= min($total_pages, $page + 1); $i++): ?>
-                <a href="?page=<?= $i ?>" class="px-4 py-2 <?= $i == $page ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800' ?> rounded hover:bg-gray-300"><?= $i ?></a>
-            <?php endfor; ?>
+        <!-- Page Numbers -->
+        <?php for ($i = max(1, $page - 1); $i <= min($total_pages, $page + 1); $i++): ?>
+          <a href="?page=<?= $i ?>" class="px-5 py-2 <?= $i == $page ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-800' ?> rounded-lg hover:bg-gray-300">
+            <?= $i ?>
+          </a>
+        <?php endfor; ?>
 
-            <!-- Next Button -->
-            <?php if ($page < $total_pages): ?>
-                <a href="?page=<?= $page + 1 ?>" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Next &raquo;</a>
-            <?php else: ?>
-                <span class="px-4 py-2 bg-gray-200 text-gray-400 rounded">Next</span>
-            <?php endif; ?>
-        </nav>
+        <!-- Next Button -->
+        <?php if ($page < $total_pages): ?>
+          <a href="?page=<?= $page + 1 ?>" class="px-5 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+            Next &raquo;
+          </a>
+        <?php else: ?>
+          <span class="px-5 py-2 bg-gray-200 text-gray-400 rounded-lg">Next</span>
+        <?php endif; ?>
+      </nav>
     </div>
     <!-- Past Workouts -->
     <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
@@ -197,7 +203,7 @@ $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <?php else: ?>
         <div class="flex flex-col justify-between items-center bg-white rounded-lg shadow-lg p-6 mb-8"> 
         <h1 class="text-2xl font-bold">My Workout Schedule</h1>
-        <a href="schedule.php?gym_id=<?php echo $membership['gym_id'];?>" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 my-10">
+        <a href="schedule.php?gym_id=<?php echo $membership['gym_id'];?>" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-shadow shadow-md hover:shadow-lg my-10">
             Create Schedule
         </a>
     </div>

@@ -37,59 +37,59 @@ $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 include 'includes/navbar.php';
 ?>
-
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-8">Payment History</h1>
+    <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">Your Payment History</h1>
 
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="min-w-full">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gym</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                <?php if (empty($payments)): ?>
-                    <tr>
-                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">No payment history found</td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($payments as $payment): ?>
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <?php echo date('M j, Y', strtotime($payment['payment_date'])); ?>
-                            </td>
-                            <td class="px-6 py-4">
-                                <?php echo htmlspecialchars($payment['gym_name']); ?>
-                            </td>
-                            <td class="px-6 py-4">
-                                <?php echo htmlspecialchars($payment['plan_name']); ?>
-                            </td>
-                            <td class="px-6 py-4">
-                                <?php echo htmlspecialchars($payment['duration']); ?>
-                                <div class="text-xs text-gray-500">
-                                    <?php echo date('M j, Y', strtotime($payment['start_date'])); ?> - 
-                                    <?php echo date('M j, Y', strtotime($payment['end_date'])); ?>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
+    <?php if (empty($payments)): ?>
+        <div class="text-center text-gray-500 text-lg">
+            No payment history found. Start your fitness journey today!
+        </div>
+    <?php else: ?>
+        <div class="space-y-6">
+            <?php foreach ($payments as $payment): ?>
+                <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                    <!-- Header Section -->
+                    <div class="p-4 bg-blue-600 text-white">
+                        <h2 class="text-lg font-semibold">
+                            <?php echo htmlspecialchars($payment['gym_name']); ?>
+                        </h2>
+                        <p class="text-sm">
+                            Paid on: <?php echo date('M j, Y', strtotime($payment['payment_date'])); ?>
+                        </p>
+                    </div>
+
+                    <!-- Details Section -->
+                    <div class="p-4 space-y-4">
+                        <!-- Plan and Duration -->
+                        <div class="flex justify-between items-center">
+                            <p class="text-sm font-medium text-gray-600">
+                                <span class="font-bold">Plan:</span> <?php echo htmlspecialchars($payment['plan_name']); ?>
+                            </p>
+                            <p class="text-sm font-medium text-gray-600">
+                                <span class="font-bold">Duration:</span> <?php echo htmlspecialchars($payment['duration']); ?>
+                            </p>
+                        </div>
+                        <p class="text-xs text-gray-500">
+                            <?php echo date('M j, Y', strtotime($payment['start_date'])); ?> - 
+                            <?php echo date('M j, Y', strtotime($payment['end_date'])); ?>
+                        </p>
+
+                        <!-- Amount -->
+                        <div class="flex justify-between items-center">
+                            <p class="text-lg font-bold text-gray-800">
                                 ₹<?php echo number_format($payment['amount'], 2); ?>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    <?php echo $payment['status'] === 'completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
-                                    <?php echo ucfirst($payment['status']); ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
+                            </p>
+                            <!-- Status Badge -->
+                            <span class="px-3 py-1 text-xs font-medium rounded-full 
+                                <?php echo $payment['status'] === 'completed' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-red-100 text-red-800'; ?>">
+                                <?php echo ucfirst($payment['status']); ?>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 </div>

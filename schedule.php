@@ -11,8 +11,9 @@ $db = new GymDatabase();
 $conn = $db->getConnection();
 $user_id = $_SESSION['user_id'];
 
+
 // Get all active memberships for the user across different gyms
-// Get all active memberships for the user
+
 $membershipsStmt = $conn->prepare("
     SELECT 
         um.id as membership_id,
@@ -76,6 +77,18 @@ if ($hours) {
         $timeSlots[] = date('H:i:s', $time);
     }
 }
+// Add this query after the existing timeSlots generation
+$occupancyStmt = $conn->prepare("
+    SELECT start_time, COUNT(*) as current_occupancy 
+    FROM schedules 
+    WHERE gym_id = ? 
+    AND start_date = ? 
+    GROUP BY start_time
+");
+$occupancyStmt->execute([$gym_id, $start_date]);
+$occupancyByTime = $occupancyStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Modify the time slot select dropdown in the form
 
 include 'includes/navbar.php';
 ?>
@@ -105,19 +118,18 @@ include 'includes/navbar.php';
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h2 class="text-2xl font-bold mb-6">Create Schedule</h2>
             <form action="process_schedule.php" method="POST" id="scheduleForm" class="space-y-6">
-            <select name="membership_id" id="membershipSelect" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-    <?php foreach ($memberships as $membership): ?>
-        <option value="<?= $membership['membership_id'] ?>" 
-                data-start="<?= $membership['start_date'] ?>"
-                data-end="<?= $membership['end_date'] ?>"
-                data-gym-id="<?= $membership['gym_id'] ?>">
-            <?= htmlspecialchars($membership['gym_name']) ?> - 
-            <?= htmlspecialchars($membership['plan_name']) ?> 
-            (<?= date('d M Y', strtotime($membership['start_date'])) ?> - 
-             <?= date('d M Y', strtotime($membership['end_date'])) ?>)
-        </option>
-    <?php endforeach; ?>
-</select>
+                <select name="membership_id" id="membershipSelect" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    <?php foreach ($memberships as $membership): ?>
+                        <option value="<?= $membership['membership_id'] ?>" data-start="<?= $membership['start_date'] ?>"
+                            data-end="<?= $membership['end_date'] ?>" data-gym-id="<?= $membership['gym_id'] ?>">
+                            <?= htmlspecialchars($membership['gym_name']) ?> -
+                            <?= htmlspecialchars($membership['plan_name']) ?>
+                            (<?= date('d M Y', strtotime($membership['start_date'])) ?> -
+                            <?= date('d M Y', strtotime($membership['end_date'])) ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
 
 
                 <input type="hidden" name="price" id="priceInput">
@@ -139,65 +151,72 @@ include 'includes/navbar.php';
                             class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
 
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Time Slot</label>
-                        <select name="start_time" required
-                            class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <?php foreach ($timeSlots as $time): ?>
-                                <option value="<?= $time ?>"><?= date('g:i A', strtotime($time)) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Activity Type</label>
-                        <select name="activity_type" required
-                            class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="gym_visit">General Workout</option>
-                            <option value="class">Class Session</option>
-                            <option value="personal_training">Personal Training</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Schedule Type</label>
-                    <select name="recurring" id="recurringSelect"
+                    <select name="start_time" required
                         class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="daily">Daily</option>
-                        <option value="none">Today</option>
-                        <option value="weekly">Weekly</option>
+                        <?php foreach ($timeSlots as $time):
+                            $currentOccupancy = isset($occupancyByTime[$time]) ? $occupancyByTime[$time] : 0;
+                            $isSlotFull = $currentOccupancy >= 50;
+                            ?>
+                            <option value="<?= $time ?>" <?= $isSlotFull ? 'disabled' : '' ?>>
+                                <?= date('g:i A', strtotime($time)) ?>
+                                (<?= $currentOccupancy ?>/50 members)
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 
-                <div id="daysSelection" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Days</label>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <?php foreach (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day): ?>
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" name="days[]" value="<?= strtolower($day) ?>"
-                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                <span class="ml-2"><?= $day ?></span>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Notes</label>
-                    <textarea name="notes" rows="3"
-                        class="mt-1 p-2 block w-full border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                    <label class="block text-sm font-medium text-gray-700">Activity Type</label>
+                    <select name="activity_type" required
+                        class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="gym_visit">General Workout</option>
+                        <option value="class">Class Session</option>
+                        <option value="personal_training">Personal Training</option>
+                    </select>
                 </div>
-
-                <!-- Hidden schedule ID input for editing -->
-                <input type="hidden" name="schedule_id" value="<?php echo $_GET['edit_id'] ?? ''; ?>">
-                <button type="submit" <?= !$memberships ? 'disabled' : '' ?>
-                    class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                    <?php echo isset($_GET['edit_id']) ? 'Update Schedule' : 'Create Schedule'; ?>
-                </button>
-            </form>
         </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Schedule Type</label>
+            <select name="recurring" id="recurringSelect"
+                class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="daily">Daily</option>
+                <option value="none">Today</option>
+                <option value="weekly">Weekly</option>
+            </select>
+        </div>
+
+        <div id="daysSelection" class="hidden">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Select Days</label>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <?php foreach (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day): ?>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="days[]" value="<?= strtolower($day) ?>"
+                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2"><?= $day ?></span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Notes</label>
+            <textarea name="notes" rows="3"
+                class="mt-1 p-2 block w-full border rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+        </div>
+
+        <!-- Hidden schedule ID input for editing -->
+        <input type="hidden" name="schedule_id" value="<?php echo $_GET['edit_id'] ?? ''; ?>">
+        <button type="submit" <?= !$memberships ? 'disabled' : '' ?>
+            class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-shadow shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed">
+            <?php echo isset($_GET['edit_id']) ? 'Update Schedule' : 'Create Schedule'; ?>
+        </button>
+        </form>
     </div>
+</div>
 </div>
 
 <script>

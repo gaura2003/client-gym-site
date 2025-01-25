@@ -80,7 +80,7 @@ foreach ($schedules as $schedule) {
     <?php if($schedules): ?>
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">My Workout Schedule</h1>
-        <a href="schedule_workout.php" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+        <a href="schedule_workout.php" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-shadow shadow-md hover:shadow-lg">
           Change Schedule 
         </a>
     </div>
@@ -146,7 +146,7 @@ foreach ($schedules as $schedule) {
         <?php else: ?>
         <div class="flex flex-col justify-between items-center"> 
         <h1 class="text-2xl font-bold">My Workout Schedule</h1>
-        <a href="schedule.php?gym_id=<?php echo $membership['gym_id']; ?>" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 my-10">
+        <a href="schedule.php?gym_id=<?php echo $membership['gym_id']; ?>" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-shadow shadow-md hover:shadow-lg my-10">
             Create Schedule
         </a>
     </div>

@@ -1,48 +1,54 @@
 <?php
+// Database connection
 require_once '../config/database.php';
 
 $db = new GymDatabase();
-$conn = $db->getConnection();
+$pdo = $db->getConnection();
 
-try {
-    $conn->beginTransaction();
+// Function to update schedules hourly
+function updateSchedulesHourly($pdo) {
+    $currentTime = date('Y-m-d H:i:s');
 
-    // Update schedules where start time has passed
-    $stmt = $conn->prepare("
-        UPDATE schedules 
-        SET status = 'completed',
-            completed_at = NOW()
-        WHERE status = 'scheduled'
-        AND DATE(start_date) = CURDATE()
-        AND CONCAT(start_date, ' ', start_time) < NOW()
-    ");
-    
-    $stmt->execute();
+    // Query to fetch schedules that need updates
+    $query = "SELECT schedules.id, schedules.gym_id, schedules.user_id, schedules.start_date, schedules.start_time, schedules.status, schedules.daily_rate
+              FROM schedules
+              JOIN gyms ON schedules.gym_id = gyms.gym_id
+              WHERE schedules.status = 'scheduled' AND CONCAT(schedules.start_date, ' ', schedules.start_time) <= :currentTime";
 
-    // Record attendance for completed sessions
-    $stmt = $conn->prepare("
-        INSERT INTO attendance (
-            schedule_id, user_id, gym_id,
-            check_in_time, status
-        )
-        SELECT 
-            id, user_id, gym_id,
-            CONCAT(start_date, ' ', start_time),
-            'auto_completed'
-        FROM schedules
-        WHERE status = 'completed'
-        AND completed_at = NOW()
-    ");
-    
-    $stmt->execute();
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([':currentTime' => $currentTime]);
 
-    $conn->commit();
-    
-    echo "Schedule statuses updated successfully";
+    while ($schedule = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $scheduleId = $schedule['id'];
+        $gymId = $schedule['gym_id'];
+        $userId = $schedule['user_id'];
+        $dailyRate = $schedule['daily_rate'];
 
-} catch (Exception $e) {
-    $conn->rollBack();
-    error_log("Schedule status update failed: " . $e->getMessage());
-    echo "Failed to update schedule statuses";
+        // Update the schedule status to 'completed' and payment status to 'paid'
+        $updateQuery = "UPDATE schedules SET status = 'completed', payment_status = 'paid' WHERE id = :scheduleId AND status = 'scheduled'";
+        $updateStmt = $pdo->prepare($updateQuery);
+        $updateStmt->execute([':scheduleId' => $scheduleId]);
+
+        // Credit the payment to the gym's account (assumes a gyms table with a balance column)
+        $creditQuery = "UPDATE gyms SET balance = balance + :dailyRate WHERE gym_id = :gymId";
+        $creditStmt = $pdo->prepare($creditQuery);
+        $creditStmt->execute([':dailyRate' => $dailyRate, ':gymId' => $gymId]);
+
+        // Log the payment (optional, assumes a payments table for records)
+        $logQuery = "INSERT INTO payments (id, gym_id, user_id, amount, payment_date) VALUES (:scheduleId, :gymId, :userId, :amount, :paymentDate)";
+        $logStmt = $pdo->prepare($logQuery);
+        $logStmt->execute([
+            ':scheduleId' => $scheduleId,
+            ':gymId' => $gymId,
+            ':userId' => $userId,
+            ':amount' => $dailyRate,
+            ':paymentDate' => $currentTime
+        ]);
+    }
+
+    echo "Schedules updated successfully.";
 }
+
+// Call the function
+updateSchedulesHourly($pdo);
 ?>

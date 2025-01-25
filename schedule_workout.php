@@ -150,6 +150,16 @@ $checkScheduleStmt = $conn->prepare("
 $checkScheduleStmt->execute([$gym_id, $startDate, $startTime]);
 $isSlotAvailable = $checkScheduleStmt->fetchColumn() == 0;
 
+$occupancyStmt = $conn->prepare("
+    SELECT start_time, COUNT(*) as current_occupancy 
+    FROM schedules 
+    WHERE gym_id = ? 
+    AND start_date = ? 
+    GROUP BY start_time
+");
+$occupancyStmt->execute([$gym_id, $start_date]);
+$occupancyByTime = $occupancyStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
 if ($isSlotAvailable) {
     // Update the user's schedule
     $updateScheduleStmt = $conn->prepare("
@@ -315,17 +325,21 @@ if ($isSlotAvailable) {
         </div>
     </div>
 
-    <!-- Time Slot -->
-<div>
-    <label class="block text-sm font-medium text-gray-700">Time Slot</label>
-    <select name="start_time" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-        <?php foreach ($timeSlots as $time): ?>
-            <option value="<?php echo htmlspecialchars($time); ?>">
-                <?php echo date('g:i A', strtotime($time)); ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-</div>
+    <div>
+                        <label class="block text-sm font-medium text-gray-700">Time Slot</label>
+                    <select name="start_time" required
+                        class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <?php foreach ($timeSlots as $time):
+                            $currentOccupancy = isset($occupancyByTime[$time]) ? $occupancyByTime[$time] : 0;
+                            $isSlotFull = $currentOccupancy >= 50;
+                            ?>
+                            <option value="<?= $time ?>" <?= $isSlotFull ? 'disabled' : '' ?>>
+                                <?= date('g:i A', strtotime($time)) ?>
+                                (<?= $currentOccupancy ?>/50 members)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
 
     <!-- Notes -->

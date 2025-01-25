@@ -52,6 +52,12 @@ include 'includes/navbar.php';
 ?>
 
 <div class="container mx-auto px-4 py-8">
+    <!-- Hero Section -->
+    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg shadow-lg p-10 mb-8 text-center">
+        <h1 class="text-4xl font-bold mb-4">Welcome to Your Fitness Hub</h1>
+        <p class="text-lg">Track your schedules, book classes, and achieve your fitness goals with ease!</p>
+    </div>
+
     <!-- Membership Status -->
     <?php include 'membership.php'; ?>
 
@@ -59,14 +65,12 @@ include 'includes/navbar.php';
     <div class="bg-white rounded-lg shadow p-6 mb-8">
         <h2 class="text-2xl font-bold mb-4">Upcoming Classes</h2>
         <?php if ($upcoming_classes): ?>
-            <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <?php foreach ($upcoming_classes as $class): ?>
-                    <div class="flex justify-between items-center border-b pb-4">
-                        <div>
-                            <p class="font-semibold"><?php echo htmlspecialchars($class['name']); ?></p>
-                            <p class="text-gray-600"><?php echo htmlspecialchars($class['gym_name']); ?></p>
-                        </div>
-                        <p class="text-gray-600"><?php echo date('M j, g:i A', strtotime($class['schedule'])); ?></p>
+                    <div class="border rounded-lg p-4 hover:shadow-lg transition">
+                        <h3 class="font-semibold text-xl"><?php echo htmlspecialchars($class['name']); ?></h3>
+                        <p class="text-gray-600"><?php echo htmlspecialchars($class['gym_name']); ?></p>
+                        <p class="text-gray-500"><?php echo date('M j, g:i A', strtotime($class['schedule'])); ?></p>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -75,61 +79,52 @@ include 'includes/navbar.php';
             <a href="book_class.php" class="text-blue-500 hover:underline">Book a class</a>
         <?php endif; ?>
     </div>
-<!-- Upcoming Schedules -->
-<div class="bg-white rounded-lg shadow p-6 mb-8">
-    <h2 class="text-2xl font-bold mb-4">Upcoming Schedules</h2>
-    <?php if ($upcoming_schedules): ?>
-        <div class="space-y-4">
-            <?php foreach ($upcoming_schedules as $schedule): ?>
-                <a href="schedule_details.php?schedule_id=<?php echo $schedule['id']; ?>" class="block hover:bg-gray-50 p-4 rounded-lg border">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="font-semibold"><?php echo htmlspecialchars($schedule['activity_type']); ?></p>
-                            <p class="text-gray-600"><?php echo htmlspecialchars($schedule['gym_name']); ?></p>
-                            <?php if (!empty($schedule['notes'])): ?>
-                                <p class="text-gray-500 italic text-sm"><?php echo htmlspecialchars($schedule['notes']); ?></p>
-                            <?php endif; ?>
-                        </div>
-                        <p class="text-gray-600">
-                            <?php echo date('M j, Y', strtotime($schedule['start_date'])); ?>, 
+
+    <!-- Upcoming Schedules -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-2xl font-bold mb-4">Upcoming Schedules</h2>
+        <?php if ($upcoming_schedules): ?>
+            <div class="space-y-4">
+                <?php foreach ($upcoming_schedules as $schedule): ?>
+                    <div class="border p-4 rounded-lg hover:shadow-lg transition">
+                        <h3 class="font-semibold text-lg"><?php echo htmlspecialchars($schedule['activity_type']); ?></h3>
+                        <p class="text-gray-600"><?php echo htmlspecialchars($schedule['gym_name']); ?></p>
+                        <p class="text-gray-500">
+                            <?php echo date('M j, Y', strtotime($schedule['start_date'])); ?> at 
                             <?php echo date('g:i A', strtotime($schedule['start_time'])); ?>
                         </p>
+                        <?php if (!empty($schedule['notes'])): ?>
+                            <p class="text-sm text-gray-400 italic"><?php echo htmlspecialchars($schedule['notes']); ?></p>
+                        <?php endif; ?>
                     </div>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    <?php else: ?>
-        <p class="text-gray-600">No upcoming schedules.</p>
-    <?php endif; ?>
-</div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <p class="text-gray-600">No upcoming schedules.</p>
+        <?php endif; ?>
+    </div>
 
-<!-- Recent Schedules -->
-<div class="bg-white rounded-lg shadow p-6">
-    <h2 class="text-2xl font-bold mb-4">Recent Schedules</h2>
-    <?php if ($recent_schedules): ?>
-        <div class="space-y-4">
-            <?php foreach ($recent_schedules as $schedule): ?>
-                <a href="schedule_details.php?schedule_id=<?php echo $schedule['id']; ?>" class="block hover:bg-gray-50 p-4 rounded-lg border">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="font-semibold"><?php echo htmlspecialchars($schedule['activity_type']); ?></p>
-                            <p class="text-gray-600"><?php echo htmlspecialchars($schedule['gym_name']); ?></p>
-                            <?php if ($schedule['cancellation_reason'] && $schedule['status'] === 'missed'): ?>
-                                <p class="text-red-500 italic text-sm">Reason: <?php echo htmlspecialchars($schedule['cancellation_reason']); ?></p>
-                            <?php endif; ?>
-                        </div>
-                        <p class="text-gray-600">
-                            <?php echo date('M j, Y', strtotime($schedule['start_date'])); ?>, 
+    <!-- Recent Schedules -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-2xl font-bold mb-4">Recent Schedules</h2>
+        <?php if ($recent_schedules): ?>
+            <div class="space-y-4">
+                <?php foreach ($recent_schedules as $schedule): ?>
+                    <div class="border p-4 rounded-lg hover:shadow-lg transition">
+                        <h3 class="font-semibold text-lg"><?php echo htmlspecialchars($schedule['activity_type']); ?></h3>
+                        <p class="text-gray-600"><?php echo htmlspecialchars($schedule['gym_name']); ?></p>
+                        <p class="text-gray-500">
+                            <?php echo date('M j, Y', strtotime($schedule['start_date'])); ?> at 
                             <?php echo date('g:i A', strtotime($schedule['start_time'])); ?>
                         </p>
+                        <?php if ($schedule['cancellation_reason'] && $schedule['status'] === 'missed'): ?>
+                            <p class="text-red-500 italic text-sm">Reason: <?php echo htmlspecialchars($schedule['cancellation_reason']); ?></p>
+                        <?php endif; ?>
                     </div>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    <?php else: ?>
-        <p class="text-gray-600">No recent schedules.</p>
-    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <p class="text-gray-600">No recent schedules.</p>
+        <?php endif; ?>
+    </div>
 </div>
-</div>
-
-

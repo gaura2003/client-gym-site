@@ -26,10 +26,6 @@ if (!$membership_id || !$gym_id || !$start_date || !$end_date || !$start_time) {
     exit();
 }
 
-function getDaysInMonth($month, $year) {
-    return cal_days_in_month(CAL_GREGORIAN, $month, $year);
-}
-
 function getExactDaysBetween($start_date, $end_date) {
     $start = new DateTime($start_date);
     $end = new DateTime($end_date);
@@ -40,7 +36,35 @@ function getExactDaysBetween($start_date, $end_date) {
 try {
     $conn->beginTransaction();
 
-    // Fetch membership details
+   // Add this check before inserting schedule
+$occupancyCheck = $conn->prepare("
+SELECT COUNT(*) as current_occupancy 
+FROM schedules 
+WHERE gym_id = ? 
+AND start_date = ? 
+AND start_time = ?
+");
+$occupancyCheck->execute([$gym_id, $start_date, $start_time]);
+$currentOccupancy = $occupancyCheck->fetch(PDO::FETCH_ASSOC)['current_occupancy'];
+
+if ($currentOccupancy >= 50) {
+throw new Exception("Selected time slot is full. Maximum capacity (50) reached.");
+}
+
+// Update gym occupancy tracking in the existing code
+$stmt = $conn->prepare("
+UPDATE gyms 
+SET current_occupancy = (
+    SELECT COUNT(*) 
+    FROM schedules 
+    WHERE gym_id = ? 
+    AND start_date = CURRENT_DATE 
+    AND start_time = ?
+)
+WHERE gym_id = ?
+");
+$stmt->execute([$gym_id, $start_time, $gym_id]);
+
     $stmt = $conn->prepare("
         SELECT 
             um.*,
@@ -48,18 +72,30 @@ try {
             gmp.price as plan_price,
             gmp.duration,
             g.name as gym_name,
-            coc.admin_cut_percentage,
-            coc.gym_owner_cut_percentage,
+            CASE 
+                WHEN gmp.price BETWEEN fbc.price_range_start AND fbc.price_range_end THEN 'fee_based'
+                ELSE 'tier_based'
+            END as cut_type,
+            CASE 
+                WHEN gmp.price BETWEEN fbc.price_range_start AND fbc.price_range_end THEN fbc.admin_cut_percentage
+                ELSE coc.admin_cut_percentage
+            END as admin_cut_percentage,
+            CASE 
+                WHEN gmp.price BETWEEN fbc.price_range_start AND fbc.price_range_end THEN fbc.gym_cut_percentage
+                ELSE coc.gym_owner_cut_percentage
+            END as gym_owner_cut_percentage,
             u.balance as user_balance
         FROM user_memberships um
         JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
         JOIN gyms g ON um.gym_id = g.gym_id
-        JOIN cut_off_chart coc ON gmp.tier = coc.tier AND gmp.duration = coc.duration
+        LEFT JOIN cut_off_chart coc ON gmp.tier = coc.tier AND gmp.duration = coc.duration
+        LEFT JOIN fee_based_cuts fbc ON gmp.price BETWEEN fbc.price_range_start AND fbc.price_range_end
         JOIN users u ON um.user_id = u.id
         WHERE um.id = ? AND um.user_id = ?
         AND um.status = 'active'
         AND um.payment_status = 'paid'
     ");
+    
     $stmt->execute([$membership_id, $user_id]);
     $membership = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -88,15 +124,16 @@ try {
                 user_id, gym_id, membership_id,
                 activity_type, start_date, end_date,
                 start_time, status, notes,
-                daily_rate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?)
+                daily_rate, cut_type
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?)
         ");
         $stmt->execute([
             $user_id, $gym_id, $membership_id,
             $activity_type, 
             $start_date_obj->format('Y-m-d'),
             $start_date_obj->format('Y-m-d'),
-            $start_time, $notes, $daily_gym_rate
+            $start_time, $notes, $daily_gym_rate,
+            $membership['cut_type']
         ]);
         $start_date_obj->modify('+1 day');
     }
@@ -107,8 +144,8 @@ try {
         INSERT INTO gym_revenue (
             gym_id, date, amount, admin_cut,
             source_type, schedule_id, notes,
-            daily_rate
-        ) VALUES (?, ?, ?, ?, 'visit', ?, ?, ?)
+            daily_rate, cut_type
+        ) VALUES (?, ?, ?, ?, 'visit', ?, ?, ?, ?)
     ");
     $stmt->execute([
         $gym_id,
@@ -117,7 +154,8 @@ try {
         $admin_cut_total,
         $schedule_id,
         "Revenue for $total_days days schedule",
-        $daily_gym_rate
+        $daily_gym_rate,
+        $membership['cut_type']
     ]);
 
     // Update gym balance
@@ -128,7 +166,6 @@ try {
         WHERE gym_id = ?
     ");
     $stmt->execute([$gym_cut_total, $gym_id]);
-
 
     // Update user balance
     $stmt = $conn->prepare("

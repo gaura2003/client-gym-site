@@ -8,12 +8,24 @@ $GymDatabase = new GymDatabase();
 $db = $GymDatabase->getConnection();
 $auth = new Auth($db);
 
+$userCity = '';
+if (isset($_SESSION['user_id'])) {
+    $userId = $_SESSION['user_id'];
+    $query = "SELECT city FROM users WHERE id = ?";
+    $stmt = $db->prepare($query);
+    $stmt->execute([$userId]);
+    $userCity = $stmt->fetchColumn() ?: '';
+}
+
 // Search and filter parameters
 $search = $_GET['search'] ?? '';
 $city = $_GET['city'] ?? '';
 $amenities = $_GET['amenities'] ?? [];
 $min_price = $_GET['min_price'] ?? $_POST['min_price'] ?? '';  // Added min price filter
 $max_price = $_GET['max_price'] ?? '';  // Added max price filter
+if (!$city && $userCity) {
+    $city = $userCity;
+}
 
 // Base query for gyms with membership price
 $sql = "
@@ -70,7 +82,6 @@ $query = "SELECT DISTINCT JSON_UNQUOTE(JSON_EXTRACT(amenities, CONCAT('$[', n, '
           CROSS JOIN (SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) n
           WHERE status = 'active' AND amenities IS NOT NULL";
 
-// Execute the query
 $stmt = $db->query($query);
 $amenities = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
@@ -143,61 +154,50 @@ include 'includes/navbar.php';
             </div>
         </form>
     </div>
-
-    <!-- Gyms Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Gyms Grid Section -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <?php foreach ($gyms as $gym): ?>
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+            <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                <img 
+                    src="./gym/uploads/gym_images/<?php echo htmlspecialchars($gym['cover_photo'] ?? 'default_gym.jpg'); ?>" 
+                    alt="Gym Image" 
+                    class="w-full h-48 object-cover rounded-t-lg">
                 <div class="p-6">
-                    <h3 class="text-xl font-bold mb-2"><?php echo htmlspecialchars($gym['name']); ?></h3>
-                    
-                    <!-- Rating Display -->
-                    <div class="flex items-center mb-3">
+                    <h3 class="text-lg font-bold text-gray-900"><?php echo htmlspecialchars($gym['name']); ?></h3>
+                    <div class="flex items-center space-x-2 mt-2">
                         <?php
                         $rating = round($gym['avg_rating'] ?? 0);
                         for ($i = 1; $i <= 5; $i++): 
                         ?>
-                            <svg class="h-5 w-5 <?php echo $i <= $rating ? 'text-yellow-400' : 'text-gray-300'; ?> fill-current" 
-                                 viewBox="0 0 20 20">
+                            <svg 
+                                class="h-5 w-5 <?php echo $i <= $rating ? 'text-yellow-400' : 'text-gray-300'; ?>" 
+                                fill="currentColor" 
+                                viewBox="0 0 20 20">
                                 <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
                             </svg>
                         <?php endfor; ?>
-                        <span class="ml-2 text-sm text-gray-600">
-                            (<?php echo $gym['review_count'] ?? 0; ?> reviews)
-                        </span>
+                        <span class="text-sm text-gray-600">(<?php echo $gym['review_count'] ?? 0; ?> reviews)</span>
                     </div>
-
-                    <!-- Location and Contact -->
-                    <p class="text-gray-600 mb-2">
-                        <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                        </svg>
-                        <?php echo htmlspecialchars($gym['city']); ?>
-                    </p>
-
-                    <!-- Amenities -->
-                    <div class="flex flex-wrap gap-2 my-3">
+                    <p class="text-gray-600 mt-3 text-sm"><?php echo htmlspecialchars($gym['city']); ?></p>
+                    <div class="mt-3 flex flex-wrap gap-2">
                         <?php foreach (json_decode($gym['amenities'], true) as $amenity): ?>
-                            <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-sm">
+                            <span class="px-2 py-1 text-sm bg-blue-50 text-blue-700 rounded-full">
                                 <?php echo ucfirst($amenity); ?>
                             </span>
                         <?php endforeach; ?>
                     </div>
-
-                    <!-- Monthly Price -->
-                    <div class="mb-4">
-                        <p class="text-lg font-semibold text-gray-800">
-                            ₹<?php echo number_format($gym['monthly_price'], 2); ?> / Month
-                        </p>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="flex justify-between items-center mt-4">
-                        <a href="../gym/gym_details.php?gym_id=<?php echo $gym['gym_id']; ?>" 
-                           class="text-blue-600 hover:text-blue-800">View Details</a>
-                        <a href="../gym/schedule.php?gym_id=<?php echo $gym['gym_id']; ?>" 
-                           class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    <p class="text-lg font-semibold text-gray-800 mt-4">
+                        ₹<?php echo number_format($gym['monthly_price'], 2); ?> / Month
+                    </p>
+                    <div class="flex justify-between items-center mt-6">
+                        <a 
+                            href="../gym/gym_details.php?gym_id=<?php echo $gym['gym_id']; ?>" 
+                            class="text-blue-600 hover:text-blue-800">
+                            View Details
+                        </a>
+                        <a 
+                            href="../gym/schedule.php?gym_id=<?php echo $gym['gym_id']; ?>" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
                             Schedule Visit
                         </a>
                     </div>
@@ -206,3 +206,21 @@ include 'includes/navbar.php';
         <?php endforeach; ?>
     </div>
 </div>
+<script>
+// Live search function triggered on keyup in the search bar
+function liveSearch(query) {
+    if (query.length > 2) { // Trigger search if input length is greater than 2 characters
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", "search_gym.php?search=" + encodeURIComponent(query), true);
+        
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                // Update the gym listings with the response
+                document.getElementById('gym-listings').innerHTML = xhr.responseText;
+            }
+        };
+
+        xhr.send();
+    }
+}
+</script>
