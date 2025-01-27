@@ -1,597 +1,560 @@
 <?php
 session_start();
-require '../config/database.php';
+require_once '../config/database.php';
 
 if (!isset($_SESSION['owner_id'])) {
-    header('Location: login.html');
+    header('Location: login.php');
     exit;
 }
 
-$owner_id = $_SESSION['owner_id'];
 $db = new GymDatabase();
 $conn = $db->getConnection();
+$owner_id = $_SESSION['owner_id'];
 
-// Get gym details
-$stmt = $conn->prepare("SELECT gym_id, name FROM gyms WHERE owner_id = :owner_id");
-$stmt->bindParam(':owner_id', $owner_id);
-$stmt->execute();
+// Get Gym Details
+$stmt = $conn->prepare("SELECT * FROM gyms WHERE owner_id = ?");
+$stmt->execute([$owner_id]);
 $gym = $stmt->fetch(PDO::FETCH_ASSOC);
+$gym_id = $gym['gym_id'];
 
-
-$gym_id = $gym['gym_id'] ?? null;
-
-// Fetch Analytics Data
+// Analytics Data
 $analytics = [
     'daily_visits' => 0,
     'active_members' => 0,
     'monthly_revenue' => 0,
-    'total_revenue' => 0,
-    'total_classes' => 0,
-    'equipment_count' => 0,
-    'review_count' => 0,
-    'avg_rating' => 0,
-    'class_bookings' => 0,
-    'membership_distribution' => [],
-    'revenue_by_plan' => []
+    'total_revenue' => 0
 ];
 
-// Daily Visits
+// Get Daily Visits
 $stmt = $conn->prepare("
-    SELECT COUNT(*) as visits 
+    SELECT COUNT(*) as count 
     FROM schedules 
     WHERE gym_id = ? 
     AND DATE(start_date) = CURRENT_DATE
 ");
 $stmt->execute([$gym_id]);
-$analytics['daily_visits'] = $stmt->fetch(PDO::FETCH_ASSOC)['visits'];
+$analytics['daily_visits'] = $stmt->fetchColumn();
 
-// Active Members
+// Get Active Members
 $stmt = $conn->prepare("
-    SELECT COUNT(*) as members 
+    SELECT COUNT(DISTINCT user_id) as count 
     FROM user_memberships 
     WHERE gym_id = ? 
-    AND status = 'active' 
-    AND payment_status = 'paid'
-    AND CURRENT_DATE BETWEEN start_date AND end_date
+    AND status = 'active'
 ");
 $stmt->execute([$gym_id]);
-$analytics['active_members'] = $stmt->fetch(PDO::FETCH_ASSOC)['members'];
+$analytics['active_members'] = $stmt->fetchColumn();
 
-// Monthly Revenue - Calculate from schedules table
-$stmt = $conn->prepare("
-    SELECT COALESCE(SUM(daily_rate), 0) as monthly_revenue 
-    FROM schedules 
-    WHERE gym_id = ? 
-    AND MONTH(start_date) = MONTH(CURRENT_DATE)
-    AND YEAR(start_date) = YEAR(CURRENT_DATE)
-    AND status IN ('completed', 'scheduled')
-");
-$stmt->execute([$gym_id]);
-$analytics['monthly_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['monthly_revenue'];
-
-// Total Revenue - Calculate from all time
-$stmt = $conn->prepare("
-    SELECT COALESCE(SUM(daily_rate), 0) as total_revenue 
-    FROM schedules 
-    WHERE gym_id = ? 
-    AND status IN ('completed', 'scheduled')
-");
-$stmt->execute([$gym_id]);
-$analytics['total_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['total_revenue'];
-
-
-// Total Revenue
+// Get Monthly Revenue
 $stmt = $conn->prepare("
     SELECT COALESCE(SUM(amount), 0) as total 
-    FROM payments 
+    FROM gym_revenue 
     WHERE gym_id = ? 
-    AND status = 'completed'
+    AND MONTH(date) = MONTH(CURRENT_DATE)
+    AND YEAR(date) = YEAR(CURRENT_DATE)
 ");
 $stmt->execute([$gym_id]);
-$analytics['total_revenue'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+$analytics['monthly_revenue'] = $stmt->fetchColumn();
 
-// Equipment Count
+// Get Total Revenue
 $stmt = $conn->prepare("
-    SELECT COUNT(*) as count 
-    FROM gym_equipment 
+    SELECT COALESCE(SUM(amount), 0) as total 
+    FROM gym_revenue 
     WHERE gym_id = ?
 ");
 $stmt->execute([$gym_id]);
-$analytics['equipment_count'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
-
-// Reviews Stats
-$stmt = $conn->prepare("
-    SELECT COUNT(*) as count, COALESCE(AVG(rating), 0) as avg_rating 
-    FROM reviews 
-    WHERE gym_id = ? 
-    AND status = 'approved'
-");
-$stmt->execute([$gym_id]);
-$reviews = $stmt->fetch(PDO::FETCH_ASSOC);
-$analytics['review_count'] = $reviews['count'];
-$analytics['avg_rating'] = number_format($reviews['avg_rating'], 1);
-
-$stmt = $conn->prepare("
-    SELECT 
-        um.*,
-        gmp.price as plan_price,
-        CASE 
-            WHEN gmp.price BETWEEN fbc.price_range_start AND fbc.price_range_end 
-            THEN fbc.gym_cut_percentage
-            ELSE coc.gym_owner_cut_percentage
-        END as gym_cut_percentage
-    FROM user_memberships um
-    JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
-    LEFT JOIN cut_off_chart coc ON gmp.tier = coc.tier AND gmp.duration = coc.duration
-    LEFT JOIN fee_based_cuts fbc ON gmp.price BETWEEN fbc.price_range_start AND fbc.price_range_end
-    WHERE um.gym_id = ? AND um.payment_status = 'paid'
-");
-
-$stmt->execute([$gym_id]);
-$memberships = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$total_earnings = 0;
-foreach($memberships as $membership) {
-    $gym_cut = floor(($membership['plan_price'] * $membership['gym_cut_percentage']) / 100);
-    $total_earnings += $gym_cut;
-}
-
-$analytics['total_revenue'] = $total_earnings;
-
-// Class Bookings
-$stmt = $conn->prepare("
-    SELECT COUNT(*) as bookings 
-    FROM class_bookings cb 
-    JOIN gym_classes gc ON cb.class_id = gc.id 
-    WHERE gc.gym_id = ? 
-    AND cb.status = 'booked'
-");
-$stmt->execute([$gym_id]);
-$analytics['class_bookings'] = $stmt->fetch(PDO::FETCH_ASSOC)['bookings'];
-
-// Update the existing gym details query
-$stmt = $conn->prepare("
-    SELECT 
-        gym_id, 
-        name, 
-        balance,
-        last_payout_date 
-    FROM gyms 
-    WHERE owner_id = :owner_id
-");
-$stmt->bindParam(':owner_id', $owner_id);
-$stmt->execute();
-$gym = $stmt->fetch(PDO::FETCH_ASSOC);
-
-// Add these queries after existing analytics queries
+$analytics['total_revenue'] = $stmt->fetchColumn();
 
 // Current Time Slot Occupancy
-$currentTimeStmt = $conn->prepare("
-    SELECT COUNT(*) as current_slot_occupancy 
+$stmt = $conn->prepare("
+    SELECT COUNT(*) as count 
     FROM schedules 
     WHERE gym_id = ? 
-    AND start_date = CURRENT_DATE 
-    AND TIME(start_time) <= TIME(NOW())
-    AND TIME(DATE_ADD(start_time, INTERVAL 1 HOUR)) > TIME(NOW())
+    AND DATE(start_date) = CURRENT_DATE 
+    AND HOUR(start_time) = HOUR(CURRENT_TIME)
 ");
-$currentTimeStmt->execute([$gym_id]);
-$currentSlotOccupancy = $currentTimeStmt->fetch(PDO::FETCH_ASSOC)['current_slot_occupancy'];
+$stmt->execute([$gym_id]);
+$currentSlotOccupancy = $stmt->fetchColumn();
 
-// Today's Total Occupancy
-$todayOccupancyStmt = $conn->prepare("
-    SELECT COUNT(*) as today_total 
+// Daily Activity (Hour-wise visits)
+$stmt = $conn->prepare("
+    SELECT HOUR(start_time) as hour, COUNT(*) as visit_count 
     FROM schedules 
     WHERE gym_id = ? 
-    AND start_date = CURRENT_DATE
+    AND DATE(start_date) = CURRENT_DATE 
+    GROUP BY HOUR(start_time)
 ");
-$todayOccupancyStmt->execute([$gym_id]);
-$todayTotalOccupancy = $todayOccupancyStmt->fetch(PDO::FETCH_ASSOC)['today_total'];
+$stmt->execute([$gym_id]);
+$dailyActivity = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Peak Hours Today
-$peakHoursStmt = $conn->prepare("
-    SELECT start_time, COUNT(*) as slot_count 
-    FROM schedules 
-    WHERE gym_id = ? 
-    AND start_date = CURRENT_DATE 
-    GROUP BY start_time 
-    ORDER BY slot_count DESC 
-    LIMIT 1
+// Today's Class Bookings
+$stmt = $conn->prepare("
+    SELECT s.*, u.username 
+    FROM schedules s 
+    JOIN users u ON s.user_id = u.id 
+    WHERE s.gym_id = ? 
+    AND DATE(s.start_date) = CURRENT_DATE 
+    ORDER BY s.start_time ASC
 ");
-$peakHoursStmt->execute([$gym_id]);
-$peakHour = $peakHoursStmt->fetch(PDO::FETCH_ASSOC);
-$currentSlotOccupancy = $currentSlotOccupancy ?? 0;
-$todayTotalOccupancy = $todayTotalOccupancy ?? 0;
-$peakHour = $peakHour ?? null;
+$stmt->execute([$gym_id]);
+$todayBookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// daily based revenue
-// Daily Analytics Queries
-$today = date('Y-m-d');
-
-// Daily Revenue Breakdown
-$dailyRevenueStmt = $conn->prepare("
+// Equipment Status
+$stmt = $conn->prepare("
     SELECT 
-        activity_type,
-        SUM(daily_rate) as daily_revenue
-    FROM schedules 
-    WHERE gym_id = ? 
-    AND start_date = ?
-    GROUP BY activity_type
+        equipment_name as name,
+        quantity as total
+    FROM gym_equipment
+    WHERE gym_id = ?
 ");
-$dailyRevenueStmt->execute([$gym_id, $today]);
-$dailyRevenue = $dailyRevenueStmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt->execute([$gym_id]);
+$equipmentStatus = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Daily Equipment Usage
-$dailyEquipmentStmt = $conn->prepare("
-    SELECT 
-        ge.equipment_name,
-        COUNT(s.id) as today_usage
-    FROM gym_equipment ge
-    LEFT JOIN schedules s ON s.gym_id = ge.gym_id AND s.start_date = ?
-    WHERE ge.gym_id = ?
-    GROUP BY ge.equipment_id
-    ORDER BY today_usage DESC
+// Recent Reviews
+$stmt = $conn->prepare("
+    SELECT r.*, u.username 
+    FROM reviews r 
+    JOIN users u ON r.user_id = u.id 
+    WHERE r.gym_id = ? 
+    ORDER BY r.created_at DESC 
     LIMIT 5
 ");
-$dailyEquipmentStmt->execute([$today, $gym_id]);
-$dailyEquipment = $dailyEquipmentStmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt->execute([$gym_id]);
+$recentReviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Daily Member Activity
-$dailyActivityStmt = $conn->prepare("
+// Membership Distribution
+$stmt = $conn->prepare("
     SELECT 
-        HOUR(start_time) as hour,
-        COUNT(*) as visit_count
-    FROM schedules
-    WHERE gym_id = ? 
-    AND start_date = ?
-    GROUP BY HOUR(start_time)
-    ORDER BY hour ASC
-");
-$dailyActivityStmt->execute([$gym_id, $today]);
-$dailyActivity = $dailyActivityStmt->fetchAll(PDO::FETCH_ASSOC);
-
-
-
-//yearly based revenue
-// Membership Plan Distribution
-$planDistributionStmt = $conn->prepare("
-    SELECT 
-        gmp.tier,
-        gmp.duration,
-        COUNT(*) as member_count
+        gmp.plan_name,
+        COUNT(*) as member_count,
+        (COUNT(*) * 100.0 / (
+            SELECT COUNT(*) 
+            FROM user_memberships 
+            WHERE gym_id = ? 
+            AND status = 'active'
+        )) as percentage
     FROM user_memberships um
     JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
     WHERE um.gym_id = ? 
     AND um.status = 'active'
-    GROUP BY gmp.tier, gmp.duration
+    GROUP BY gmp.plan_id, gmp.plan_name
 ");
-$planDistributionStmt->execute([$gym_id]);
-$planDistribution = $planDistributionStmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt->execute([$gym_id, $gym_id]);
+$membershipDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Revenue by Activity Type
-$revenueByActivityStmt = $conn->prepare("
+// Daily Revenue Breakdown
+$stmt = $conn->prepare("
     SELECT 
-        s.activity_type,
-        SUM(s.daily_rate) as total_revenue
-    FROM schedules s
-    WHERE s.gym_id = ?
-    GROUP BY s.activity_type
+        source_type as activity_type,
+        SUM(amount) as daily_revenue
+    FROM gym_revenue
+    WHERE gym_id = ?
+    AND DATE(date) = CURRENT_DATE
+    GROUP BY source_type
 ");
-$revenueByActivityStmt->execute([$gym_id]);
-$revenueByActivity = $revenueByActivityStmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt->execute([$gym_id]);
+$dailyRevenue = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Equipment Usage Analytics
-$equipmentStmt = $conn->prepare("
+// Member Growth Trend
+$stmt = $conn->prepare("
     SELECT 
-        ge.equipment_name,
-        ge.quantity,
-        COUNT(s.id) as usage_count
-    FROM gym_equipment ge
-    LEFT JOIN schedules s ON s.gym_id = ge.gym_id
-    WHERE ge.gym_id = ?
-    GROUP BY ge.equipment_id
-    ORDER BY usage_count DESC
-    LIMIT 5
+        DATE_FORMAT(created_at, '%Y-%m') as month,
+        COUNT(*) as new_members
+    FROM user_memberships
+    WHERE gym_id = ?
+    GROUP BY month
+    ORDER BY month DESC
+    LIMIT 6
 ");
-$equipmentStmt->execute([$gym_id]);
-$equipmentAnalytics = $equipmentStmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt->execute([$gym_id]);
+$memberGrowth = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Member Activity Hours
-$activityHoursStmt = $conn->prepare("
+// Peak Days Analysis
+$stmt = $conn->prepare("
     SELECT 
-        HOUR(start_time) as hour,
+        DAYNAME(start_date) as day,
         COUNT(*) as visit_count
     FROM schedules
     WHERE gym_id = ?
-    GROUP BY HOUR(start_time)
+    AND start_date >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY)
+    GROUP BY day
     ORDER BY visit_count DESC
 ");
-$activityHoursStmt->execute([$gym_id]);
-$activityHours = $activityHoursStmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt->execute([$gym_id]);
+$peakDays = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Revenue by Plan Type
+$stmt = $conn->prepare("
+    SELECT 
+        gmp.plan_name,
+        SUM(gr.amount) as revenue,
+        COUNT(um.user_id) as subscribers
+    FROM gym_revenue gr
+    JOIN user_memberships um ON gr.id = um.id
+    JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
+    WHERE gr.gym_id = ?
+    AND MONTH(gr.date) = MONTH(CURRENT_DATE)
+    GROUP BY gmp.plan_id
+");
+$stmt->execute([$gym_id]);
+$planRevenue = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Member Retention Rate
+$stmt = $conn->prepare("
+    SELECT 
+        COUNT(CASE WHEN status = 'active' AND DATEDIFF(end_date, start_date) > 180 THEN 1 END) * 100.0 / COUNT(*) as retention_rate
+    FROM user_memberships
+    WHERE gym_id = ?
+");
+$stmt->execute([$gym_id]);
+$retentionRate = $stmt->fetchColumn();
+
+// Age Demographics
+$stmt = $conn->prepare("
+    SELECT 
+        CASE 
+            WHEN age < 25 THEN 'Under 25'
+            WHEN age BETWEEN 25 AND 34 THEN '25-34'
+            WHEN age BETWEEN 35 AND 44 THEN '35-44'
+            ELSE '45+'
+        END as age_group,
+        COUNT(*) as member_count
+    FROM users u
+    JOIN user_memberships um ON u.id = um.user_id
+    WHERE um.gym_id = ? AND um.status = 'active'
+    GROUP BY age_group
+");
+$stmt->execute([$gym_id]);
+$ageDemo = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 include '../includes/navbar.php';
 
 if ($gym): ?>
 
-    <div class="container mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">Dashboard - <?php echo htmlspecialchars($gym['name']); ?></h1>
-            <span class="text-gray-600">Welcome back!</span>
+<div class="container mx-auto px-4 py-8">
+    <!-- Header Section -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+        <div class="p-6 bg-gradient-to-r from-gray-900 to-gray-800">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="h-16 w-16 rounded-full bg-yellow-500 flex items-center justify-center">
+                        <i class="fas fa-dumbbell text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white"><?php echo htmlspecialchars($gym['name']); ?></h1>
+                        <p class="text-gray-300">Dashboard Overview</p>
+                    </div>
+                </div>
+                <div class="text-white text-right">
+                    <p class="text-sm">Today's Date</p>
+                    <p class="text-xl font-bold"><?php echo date('d M Y'); ?></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Daily Visits -->
+        <div class="bg-white rounded-xl shadow-lg p-6 transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-gray-500 text-sm font-medium">Daily Visits</h3>
+                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Today</span>
+            </div>
+            <div class="flex items-center">
+                <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                    <i class="fas fa-users text-blue-600 text-xl"></i>
+                </div>
+                <p class="text-3xl font-bold text-gray-900"><?php echo number_format($analytics['daily_visits']); ?></p>
+            </div>
         </div>
 
-        <!-- Analytics Grid -->
-        <a href="./revenue_history.php">
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <!-- Daily Visits Card -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-gray-500 text-sm font-medium">Daily Visits</h3>
-                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Today</span>
-                    </div>
-                    <p class="text-3xl font-bold text-gray-900 mt-2">
-                        <?php echo number_format($analytics['daily_visits']); ?>
-                    </p>
-                </div>
-        </a>
-
-        <!-- Active Members Card -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex items-center justify-between">
+        <!-- Active Members -->
+        <div class="bg-white rounded-xl shadow-lg p-6 transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center justify-between mb-4">
                 <h3 class="text-gray-500 text-sm font-medium">Active Members</h3>
                 <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Current</span>
             </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($analytics['active_members']); ?></p>
+            <div class="flex items-center">
+                <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mr-4">
+                    <i class="fas fa-user-check text-green-600 text-xl"></i>
+                </div>
+                <p class="text-3xl font-bold text-gray-900"><?php echo number_format($analytics['active_members']); ?></p>
+            </div>
         </div>
 
-        <!-- Monthly Revenue Card -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex items-center justify-between">
+        <!-- Monthly Revenue -->
+        <div class="bg-white rounded-xl shadow-lg p-6 transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center justify-between mb-4">
                 <h3 class="text-gray-500 text-sm font-medium">Monthly Revenue</h3>
                 <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">This Month</span>
             </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2">
-                ₹<?php echo number_format($analytics['monthly_revenue'] ?? 0, 2); ?>
-            </p>
-
+            <div class="flex items-center">
+                <div class="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center mr-4">
+                    <i class="fas fa-rupee-sign text-purple-600 text-xl"></i>
+                </div>
+                <p class="text-3xl font-bold text-gray-900">₹<?php echo number_format($analytics['monthly_revenue']); ?></p>
+            </div>
         </div>
 
-        <!-- Total Revenue Card -->
-        <a href="earning-history.php">
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex items-center justify-between">
-                <h3 class="text-gray-500 text-sm font-medium">Membership Revenue</h3>
+        <!-- Total Revenue -->
+        <div class="bg-white rounded-xl shadow-lg p-6 transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-gray-500 text-sm font-medium">Total Revenue</h3>
                 <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">All Time</span>
             </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2">₹<?php echo number_format($analytics['total_revenue'], 2); ?>
-            </p>
+            <div class="flex items-center">
+                <div class="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center mr-4">
+                    <i class="fas fa-chart-line text-yellow-600 text-xl"></i>
+                </div>
+                <p class="text-3xl font-bold text-gray-900">₹<?php echo number_format($analytics['total_revenue']); ?></p>
+            </div>
         </div>
-        </a>
+    </div>
 
-        <!-- Equipment Count Card -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
+    <!-- Current Occupancy Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Current Time Slot -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-clock text-yellow-500 mr-2"></i>
+                Current Time Slot Occupancy
+            </h3>
             <div class="flex items-center justify-between">
-                <h3 class="text-gray-500 text-sm font-medium">Equipment</h3>
-                <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">Total</span>
+                <div class="flex-1">
+                    <div class="h-4 bg-gray-200 rounded-full">
+                        <div class="h-4 bg-yellow-500 rounded-full" style="width: <?php echo ($currentSlotOccupancy/50)*100; ?>%"></div>
+                    </div>
+                </div>
+                <span class="ml-4 text-2xl font-bold"><?php echo $currentSlotOccupancy; ?>/50</span>
             </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($analytics['equipment_count']); ?></p>
-        </div>
-
-        <!-- Reviews Card -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex items-center justify-between">
-                <h3 class="text-gray-500 text-sm font-medium">Reviews</h3>
-                <span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded">Rating</span>
-            </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo $analytics['avg_rating']; ?>/5</p>
-            <p class="text-sm text-gray-600 mt-1">Total Reviews: <?php echo number_format($analytics['review_count']); ?>
-            </p>
-        </div>
-
-        <!-- Class Bookings Card -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex items-center justify-between">
-                <h3 class="text-gray-500 text-sm font-medium">Class Bookings</h3>
-                <span class="bg-pink-100 text-pink-800 text-xs font-medium px-2.5 py-0.5 rounded">Active</span>
-            </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo number_format($analytics['class_bookings']); ?></p>
-        </div>
-        <!-- Current Time Slot Occupancy -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex items-center justify-between">
-                <h3 class="text-gray-500 text-sm font-medium">Current Slot Occupancy</h3>
-                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Now</span>
-            </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo $currentSlotOccupancy; ?>/50</p>
-            <p class="text-sm text-gray-600 mt-1">Current Hour</p>
-        </div>
-
-        <!-- Today's Total Occupancy -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex items-center justify-between">
-                <h3 class="text-gray-500 text-sm font-medium">Today's Occupancy</h3>
-                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Today</span>
-            </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo $todayTotalOccupancy; ?></p>
-            <p class="text-sm text-gray-600 mt-1">Total Scheduled Visits</p>
+            <p class="text-sm text-gray-500 mt-2">Current hour capacity utilization</p>
         </div>
 
         <!-- Peak Hours -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex items-center justify-between">
-                <h3 class="text-gray-500 text-sm font-medium">Peak Hour Today</h3>
-                <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">Busiest</span>
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-chart-bar text-yellow-500 mr-2"></i>
+                Peak Hours Today
+            </h3>
+            <div class="grid grid-cols-12 gap-2 h-32">
+                <?php foreach ($dailyActivity as $activity): 
+                    $height = ($activity['visit_count'] / 50) * 100;
+                ?>
+                    <div class="flex flex-col items-center">
+                        <div class="flex-1 w-full bg-gray-200 rounded-t relative">
+                            <div class="absolute bottom-0 w-full bg-yellow-500 rounded-t transition-all duration-300" 
+                                 style="height: <?php echo $height; ?>%"></div>
+                        </div>
+                        <span class="text-xs mt-1"><?php echo date('ga', strtotime($activity['hour'].':00')); ?></span>
+                    </div>
+                <?php endforeach; ?>
             </div>
-            <p class="text-3xl font-bold text-gray-900 mt-2">
-                <?php echo $peakHour ? date('g:i A', strtotime($peakHour['start_time'])) : 'N/A'; ?>
-            </p>
-            <p class="text-sm text-gray-600 mt-1">
-                <?php echo $peakHour ? $peakHour['slot_count'] . ' members' : 'No data'; ?>
-            </p>
         </div>
-        <!-- Active members daily -->
-        <!-- Daily Revenue Card -->
-        <div class="bg-white rounded-lg shadow-lg p-6 col-span-2">
-            <h3 class="text-xl font-semibold mb-4">Today's Revenue Breakdown</h3>
+    </div>
+
+    <!-- Revenue & Equipment Section -->
+     <!-- Bookings & Equipment Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <!-- Recent Bookings -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-calendar-alt text-yellow-500 mr-2"></i>
+            Today's Class Bookings
+        </h3>
+        <div class="space-y-4">
+            <?php foreach ($todayBookings as $booking): ?>
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                        <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium"><?= htmlspecialchars($booking['username']) ?></p>
+                            <p class="text-sm text-gray-500"><?= date('h:i A', strtotime($booking['start_time'])) ?></p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-sm <?= $booking['status'] === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' ?>">
+                        <?= ucfirst($booking['status']) ?>
+                    </span>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+
+</div>
+
+<!-- Reviews & Membership Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <!-- Recent Reviews -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-star text-yellow-500 mr-2"></i>
+            Latest Reviews
+        </h3>
+        <div class="space-y-4">
+            <?php foreach ($recentReviews as $review): ?>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="font-medium"><?= htmlspecialchars($review['username']) ?></p>
+                        <div class="flex items-center">
+                            <?php for ($i = 0; $i < 5; $i++): ?>
+                                <i class="fas fa-star <?= $i < $review['rating'] ? 'text-yellow-500' : 'text-gray-300' ?>"></i>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                    <p class="text-gray-600"><?= htmlspecialchars($review['comment']) ?></p>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+
+    <!-- Membership Distribution -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-chart-pie text-yellow-500 mr-2"></i>
+            Membership Distribution
+        </h3>
+        <div class="space-y-4">
+            <?php foreach ($membershipDistribution as $type): ?>
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                        <p class="font-medium"><?= htmlspecialchars($type['plan_name']) ?></p>
+                        <p class="text-sm text-gray-500"><?= $type['member_count'] ?> members</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-32 bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-yellow-500 h-2.5 rounded-full" style="width: <?= $type['percentage'] ?>%"></div>
+                        </div>
+                        <span class="text-sm font-medium"><?= number_format($type['percentage']) ?>%</span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Daily Revenue -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold mb-6 flex items-center">
+                <i class="fas fa-money-bill-wave text-yellow-500 mr-2"></i>
+                Today's Revenue Breakdown
+            </h3>
             <div class="space-y-4">
                 <?php foreach ($dailyRevenue as $revenue): ?>
-                    <div class="flex justify-between items-center">
-                        <span><?= ucfirst($revenue['activity_type']) ?></span>
-                        <span class="font-bold">₹<?= number_format($revenue['daily_revenue'], 2) ?></span>
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span class="font-medium"><?php echo ucfirst($revenue['activity_type']); ?></span>
+                        <span class="text-green-600 font-bold">₹<?php echo number_format($revenue['daily_revenue'], 2); ?></span>
                     </div>
                 <?php endforeach; ?>
             </div>
         </div>
-
-        <!-- Daily Equipment Usage -->
-        <!-- <div class="bg-white rounded-lg shadow-lg p-6 col-span-2">
-    <h3 class="text-xl font-semibold mb-4">Today's Equipment Usage</h3>
-    <div class="space-y-4">
-        <?php foreach ($dailyEquipment as $equipment): ?>
-            <div class="flex justify-between items-center">
-                <span><?= $equipment['equipment_name'] ?></span>
-                <span class="font-bold"><?= $equipment['today_usage'] ?> uses today</span>
-            </div>
-        <?php endforeach; ?>
+<!-- Member Growth Chart -->
+<div class="bg-white rounded-xl shadow-lg p-6">
+    <h3 class="text-lg font-semibold mb-4">
+        <i class="fas fa-chart-line text-yellow-500 mr-2"></i>
+        Member Growth Trend
+    </h3>
+    <div class="h-64">
+        <canvas id="memberGrowthChart"></canvas>
     </div>
-</div> -->
+</div>
 
-        <!-- Daily Activity Timeline -->
-        <div class="bg-white rounded-lg shadow-lg p-6 col-span-4">
-            <h3 class="text-xl font-semibold mb-4">Today's Activity Timeline</h3>
-            <div class="grid grid-cols-12 gap-2">
-                <?php foreach ($dailyActivity as $activity):
-                    $percentage = ($activity['visit_count'] / 50) * 100;
-                    ?>
-                    <div class="flex flex-col items-center">
-                        <div class="h-32 w-full bg-gray-200 rounded-t relative">
-                            <div class="absolute bottom-0 w-full bg-blue-500 rounded-b" style="height: <?= $percentage ?>%">
-                            </div>
-                        </div>
-                        <span class="text-sm mt-1"><?= date('ga', strtotime($activity['hour'] . ':00')) ?></span>
-                        <span class="text-xs"><?= $activity['visit_count'] ?></span>
+<!-- Peak Days Analysis -->
+<div class="bg-white rounded-xl shadow-lg p-6">
+    <h3 class="text-lg font-semibold mb-4">
+        <i class="fas fa-calendar-week text-yellow-500 mr-2"></i>
+        Peak Days
+    </h3>
+    <div class="grid grid-cols-7 gap-2">
+        <?php foreach ($peakDays as $day): ?>
+            <div class="text-center">
+                <div class="h-24 bg-gray-100 rounded-lg relative">
+                    <div class="absolute bottom-0 w-full bg-yellow-500 rounded-b-lg transition-all"
+                         style="height: <?= ($day['visit_count'] / max(array_column($peakDays, 'visit_count'))) * 100 ?>%">
                     </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-
-        <!-- Active Members yearly -->
-        <!-- Membership Distribution -->
-        <div class="bg-white rounded-lg shadow-lg p-6 col-span-2">
-            <h3 class="text-gray-500 text-sm font-medium mb-4">Membership Distribution</h3>
-            <div class="space-y-4">
-                <?php foreach ($planDistribution as $plan): ?>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm"><?= $plan['tier'] ?> - <?= $plan['duration'] ?></span>
-                        <span class="font-bold"><?= $plan['member_count'] ?> members</span>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-
-        <!-- Revenue by Activity -->
-        <!-- <div class="bg-white rounded-lg shadow-lg p-6 col-span-2">
-    <h3 class="text-gray-500 text-sm font-medium mb-4">Revenue by Activity</h3>
-    <div class="space-y-4">
-        <?php foreach ($revenueByActivity as $revenue): ?>
-            <div class="flex justify-between items-center">
-                <span class="text-sm"><?= ucfirst($revenue['activity_type']) ?></span>
-                <span class="font-bold">₹<?= number_format($revenue['total_revenue'], 2) ?></span>
+                </div>
+                <p class="mt-2 text-sm"><?= substr($day['day'], 0, 3) ?></p>
             </div>
         <?php endforeach; ?>
     </div>
 </div>
 
- Top Equipment Usage
-<div class="bg-white rounded-lg shadow-lg p-6 col-span-2">
-    <h3 class="text-gray-500 text-sm font-medium mb-4">Top Equipment Usage</h3>
+<!-- Revenue by Plan -->
+<div class="bg-white rounded-xl shadow-lg p-6">
+    <h3 class="text-lg font-semibold mb-4">
+        <i class="fas fa-money-bill-wave text-yellow-500 mr-2"></i>
+        Revenue by Plan
+    </h3>
     <div class="space-y-4">
-        <?php foreach ($equipmentAnalytics as $equipment): ?>
-            <div class="flex justify-between items-center">
-                <span class="text-sm"><?= $equipment['equipment_name'] ?></span>
-                <span class="font-bold"><?= $equipment['usage_count'] ?> uses</span>
+        <?php foreach ($planRevenue as $plan): ?>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="font-medium"><?= htmlspecialchars($plan['plan_name']) ?></p>
+                        <p class="text-sm text-gray-500"><?= $plan['subscribers'] ?> subscribers</p>
+                    </div>
+                    <p class="text-green-600 font-bold">₹<?= number_format($plan['revenue'], 2) ?></p>
+                </div>
             </div>
         <?php endforeach; ?>
     </div>
-</div> -->
+</div>
 
-        <!-- Popular Hours -->
-        <div class="bg-white rounded-lg shadow-lg p-6 col-span-2">
-            <h3 class="text-gray-500 text-sm font-medium mb-4">Popular Hours</h3>
-            <div class="space-y-4">
-                <?php foreach (array_slice($activityHours, 0, 5) as $hour): ?>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm"><?= date('g:i A', strtotime($hour['hour'] . ':00')) ?></span>
-                        <span class="font-bold"><?= $hour['visit_count'] ?> visits</span>
-                    </div>
-                <?php endforeach; ?>
-            </div>
+<!-- Member Demographics -->
+<div class="bg-white rounded-xl shadow-lg p-6">
+    <h3 class="text-lg font-semibold mb-4">
+        <i class="fas fa-users text-yellow-500 mr-2"></i>
+        Member Demographics
+    </h3>
+    <div class="grid grid-cols-2 gap-4">
+        <!-- Retention Rate -->
+        <div class="p-4 bg-gray-50 rounded-lg text-center">
+            <p class="text-sm text-gray-500">Retention Rate</p>
+            <p class="text-3xl font-bold text-green-600"><?= number_format($retentionRate, 1) ?>%</p>
+        </div>
+        <!-- Age Distribution -->
+        <div class="p-4 bg-gray-50 rounded-lg">
+            <?php foreach ($ageDemo as $age): ?>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm"><?= $age['age_group'] ?></span>
+                    <span class="text-sm font-medium"><?= $age['member_count'] ?></span>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
-
-    <!-- financial overview -->
-    <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-semibold">Financial Overview</h2>
-            <span class="text-sm text-gray-500">Last Updated: <?php echo date('d M Y H:i'); ?></span>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="border rounded-lg p-4">
-                <h3 class="text-gray-500 text-sm font-medium">Current Balance</h3>
-                <p class="text-3xl font-bold text-gray-900 mt-2">₹<?php echo number_format($gym['balance'], 2); ?></p>
-                <?php if ($gym['last_payout_date']): ?>
-                    <p class="text-sm text-gray-600 mt-1">Last Payout:
-                        <?php echo date('d M Y', strtotime($gym['last_payout_date'])); ?>
-                    </p>
-                <?php endif; ?>
-            </div>
-
-            <div class="border rounded-lg p-4">
-                <h3 class="text-gray-500 text-sm font-medium">Today's Revenue</h3>
-                <?php
-                $todayRevenueStmt = $conn->prepare("
-                SELECT COALESCE(SUM(amount), 0) as today_revenue 
-                FROM gym_revenue 
-                WHERE gym_id = ? AND DATE(date) = CURRENT_DATE
-            ");
-                $todayRevenueStmt->execute([$gym_id]);
-                $todayRevenue = $todayRevenueStmt->fetch(PDO::FETCH_ASSOC)['today_revenue'];
-                ?>
-                <p class="text-3xl font-bold text-gray-900 mt-2">₹<?php echo number_format($todayRevenue, 2); ?></p>
-            </div>
-
-            <div class="border rounded-lg p-4">
-                <h3 class="text-gray-500 text-sm font-medium">Payment Status</h3>
-                <p
-                    class="text-3xl font-bold <?php echo $gym['balance'] > 0 ? 'text-yellow-600' : 'text-green-600'; ?> mt-2">
-                    <?php echo $gym['balance'] > 0 ? 'Pending' : 'Paid'; ?>
-                </p>
-            </div>
-        </div>
+</div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="mt-8">
-        <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <h3 class="text-lg font-semibold mb-6 flex items-center">
+            <i class="fas fa-bolt text-yellow-500 mr-2"></i>
+            Quick Actions
+        </h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <a href="member_list.php"
-                class="bg-blue-500 text-white rounded-lg p-4 text-center hover:bg-blue-600 transition duration-200">
-                Manage Members
+            <a href="member_list.php" class="p-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-center transition-colors duration-200">
+                <i class="fas fa-users mb-2 text-2xl"></i>
+                <p>Manage Members</p>
             </a>
-            <a href="manage_classes.php"
-                class="bg-purple-500 text-white rounded-lg p-4 text-center hover:bg-purple-600 transition duration-200">
-                Manage Classes
+            <a href="manage_equipment.php" class="p-4 bg-green-500 hover:bg-green-600 text-white rounded-xl text-center transition-colors duration-200">
+                <i class="fas fa-dumbbell mb-2 text-2xl"></i>
+                <p>Equipment</p>
             </a>
-            <a href="manage_equipment.php"
-                class="bg-red-500 text-white rounded-lg p-4 text-center hover:bg-red-600 transition duration-200">
-                Manage Equipment
+            <a href="booking.php" class="p-4 bg-purple-500 hover:bg-purple-600 text-white rounded-xl text-center transition-colors duration-200">
+                <i class="fas fa-calendar-check mb-2 text-2xl"></i>
+                <p>Schedules</p>
             </a>
-            <a href="view_reviews.php"
-                class="bg-yellow-500 text-white rounded-lg p-4 text-center hover:bg-yellow-600 transition duration-200">
-                View Reviews
+            <a href="earning-history.php" class="p-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl text-center transition-colors duration-200">
+                <i class="fas fa-chart-line mb-2 text-2xl"></i>
+                <p>Earnings</p>
             </a>
         </div>
     </div>
-    </div>
+</div>
+
+
 <?php else: ?>
 
     <div class="min-h-screen bg-gray-100 py-12">
