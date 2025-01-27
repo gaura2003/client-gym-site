@@ -27,6 +27,7 @@ $gym_id = $gym['gym_id'];
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $equipment_name = trim($_POST['equipment_name']);
     $quantity = (int)$_POST['quantity'];
+    $action = $_POST['action'];
     $image = null;
     
     if (isset($_FILES['equipment_image']) && $_FILES['equipment_image']['error'] == 0) {
@@ -46,14 +47,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
     }
-
-    $stmt = $conn->prepare("INSERT INTO gym_equipment (gym_id, equipment_name, quantity, image) VALUES (:gym_id, :equipment_name, :quantity, :image)");
-    $result = $stmt->execute([
-        ':gym_id' => $gym_id,
-        ':equipment_name' => $equipment_name,
-        ':quantity' => $quantity,
-        ':image' => $image
-    ]);
+    if ($action === 'add') {
+        $stmt = $conn->prepare("INSERT INTO gym_equipment (gym_id, equipment_name, quantity, image) VALUES (:gym_id, :equipment_name, :quantity, :image)");
+        $params = [
+            ':gym_id' => $gym_id,
+            ':equipment_name' => $equipment_name,
+            ':quantity' => $quantity,
+            ':image' => $image
+        ];
+    } else {
+        $equipment_id = $_POST['equipment_id'];
+        if ($image) {
+            $stmt = $conn->prepare("UPDATE gym_equipment SET equipment_name = :equipment_name, quantity = :quantity, image = :image WHERE equipment_id = :equipment_id AND gym_id = :gym_id");
+            $params = [
+                ':equipment_id' => $equipment_id,
+                ':gym_id' => $gym_id,
+                ':equipment_name' => $equipment_name,
+                ':quantity' => $quantity,
+                ':image' => $image
+            ];
+        } else {
+            $stmt = $conn->prepare("UPDATE gym_equipment SET equipment_name = :equipment_name, quantity = :quantity WHERE equipment_id = :equipment_id AND gym_id = :gym_id");
+            $params = [
+                ':equipment_id' => $equipment_id,
+                ':gym_id' => $gym_id,
+                ':equipment_name' => $equipment_name,
+                ':quantity' => $quantity
+            ];
+        }
+    }
+    
+    $result = $stmt->execute($params);
+    
 
     if ($result) {
         header("Location: manage_equipment.php?success=1");
@@ -69,69 +94,135 @@ $equipments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 include '../includes/navbar.php';
 ?>
 
-<div class="container mx-auto p-6">
-    <?php if (isset($_GET['success'])): ?>
-    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-        Equipment added successfully!
-    </div>
-    <?php endif; ?>
-
-    <div class="bg-white shadow-lg rounded-lg p-6">
-        <h1 class="text-2xl font-bold mb-6">Manage Equipment</h1>
-        
-        <form method="POST" action="" enctype="multipart/form-data" class="mb-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Equipment Name</label>
-                    <input type="text" name="equipment_name" required 
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+        <div class="p-6 bg-gradient-to-r from-gray-900 to-gray-800">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <div class="h-16 w-16 rounded-full bg-yellow-500 flex items-center justify-center">
+                        <i class="fas fa-dumbbell text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Gym Equipment</h1>
+                        <p class="text-gray-300">Manage your gym's equipment inventory</p>
+                    </div>
                 </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                    <input type="number" name="quantity" required min="1"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                </div>
-                
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700">Equipment Image</label>
-                    <input type="file" name="equipment_image" accept=".jpg,.jpeg,.png,.webp" 
-                           class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    <p class="text-xs text-gray-500 mt-1">Max file size: 5MB. Accepted formats: JPG, JPEG, PNG, WEBP</p>
-                </div>
+                <button onclick="openAddModal()" 
+                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg transition-colors duration-200">
+                    <i class="fas fa-plus mr-2"></i>Add Equipment
+                </button>
             </div>
-            
-            <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                Add Equipment
-            </button>
-        </form>
+        </div>
+    </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <?php foreach ($equipments as $equipment): ?>
-            <div class="border rounded-lg p-4">
+    <!-- Equipment Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <?php foreach ($equipments as $equipment): ?>
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-200">
                 <?php if ($equipment['image']): ?>
-                <img src="../gym/uploads/equipments/<?php echo htmlspecialchars($equipment['image']); ?>" 
-                     alt="<?php echo htmlspecialchars($equipment['equipment_name']); ?>"
-                     class="w-full h-48 object-cover rounded-lg mb-4">
+                    <img src="../gym/uploads/equipments/<?php echo htmlspecialchars($equipment['image']); ?>" 
+                         alt="<?php echo htmlspecialchars($equipment['equipment_name']); ?>"
+                         class="w-full h-48 object-cover">
                 <?php endif; ?>
                 
-                <h3 class="font-semibold text-lg"><?php echo htmlspecialchars($equipment['equipment_name']); ?></h3>
-                <p class="text-gray-600">Quantity: <?php echo htmlspecialchars($equipment['quantity']); ?></p>
-                
-                <div class="mt-4 flex space-x-2">
-                    <a href="edit_equipment.php?id=<?php echo $equipment['equipment_id']; ?>" 
-                       class="text-blue-600 hover:text-blue-800">Edit</a>
-                    <a href="delete_equipment.php?id=<?php echo $equipment['equipment_id']; ?>" 
-                       class="text-red-600 hover:text-red-800"
-                       onclick="return confirm('Are you sure you want to delete this equipment?')">Delete</a>
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xl font-bold"><?php echo htmlspecialchars($equipment['equipment_name']); ?></h3>
+                        <span class="px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                            <?php echo htmlspecialchars($equipment['quantity']); ?> units
+                        </span>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 mt-4">
+                        <button onclick="openEditModal(<?php echo htmlspecialchars(json_encode($equipment)); ?>)" 
+                                class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="confirmDelete(<?php echo $equipment['equipment_id']; ?>)" 
+                                class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <?php endforeach; ?>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="equipmentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl">
+            <form id="equipmentForm" method="POST" enctype="multipart/form-data" class="p-6">
+                <input type="hidden" name="action" id="formAction">
+                <input type="hidden" name="equipment_id" id="equipmentId">
+                
+                <h2 id="modalTitle" class="text-2xl font-bold mb-6"></h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Equipment Name</label>
+                        <input type="text" name="equipment_name" id="equipmentName" required
+                               class="w-full rounded-lg border-gray-300 focus:border-yellow-500 focus:ring focus:ring-yellow-200">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                        <input type="number" name="quantity" id="quantity" required min="1"
+                               class="w-full rounded-lg border-gray-300 focus:border-yellow-500 focus:ring focus:ring-yellow-200">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Equipment Image</label>
+                        <input type="file" name="equipment_image" id="equipmentImage" accept=".jpg,.jpeg,.png,.webp"
+                               class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100">
+                        <p class="mt-1 text-sm text-gray-500">Max file size: 5MB. Accepted formats: JPG, JPEG, PNG, WEBP</p>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal()"
+                            class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors duration-200">
+                        Save Equipment
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 <script>
+function openAddModal() {
+    document.getElementById('formAction').value = 'add';
+    document.getElementById('modalTitle').textContent = 'Add New Equipment';
+    document.getElementById('equipmentForm').reset();
+    document.getElementById('equipmentModal').classList.remove('hidden');
+}
+
+function openEditModal(equipment) {
+    document.getElementById('formAction').value = 'edit';
+    document.getElementById('modalTitle').textContent = 'Edit Equipment';
+    document.getElementById('equipmentId').value = equipment.equipment_id;
+    document.getElementById('equipmentName').value = equipment.equipment_name;
+    document.getElementById('quantity').value = equipment.quantity;
+    document.getElementById('equipmentModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('equipmentModal').classList.add('hidden');
+}
+
+function confirmDelete(equipmentId) {
+    if (confirm('Are you sure you want to delete this equipment?')) {
+        window.location.href = `delete_equipment.php?id=${equipmentId}`;
+    }
+}
+
 document.querySelector('input[type="file"]').addEventListener('change', function(e) {
     if (this.files[0].size > 5000000) {
         alert('File size must be less than 5MB');

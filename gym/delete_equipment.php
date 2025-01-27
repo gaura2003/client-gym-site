@@ -7,40 +7,45 @@ if (!isset($_SESSION['owner_id'])) {
     exit;
 }
 
-$gymOwnerId = $_SESSION['owner_id'];
+$owner_id = $_SESSION['owner_id'];
 $db = new GymDatabase();
 $conn = $db->getConnection();
+
+// Get gym_id for the owner
+$stmt = $conn->prepare("SELECT gym_id FROM gyms WHERE owner_id = :owner_id");
+$stmt->bindParam(':owner_id', $owner_id);
+$stmt->execute();
+$gym = $stmt->fetch(PDO::FETCH_ASSOC);
+$gym_id = $gym['gym_id'];
 
 if (isset($_GET['id'])) {
     $equipmentId = $_GET['id'];
 
-    $stmt = $conn->prepare("DELETE FROM gym_equipment WHERE owner_id = :owner_id AND equipment_id = :equipment_id");
-    $stmt->bindParam(':owner_id', $gymOwnerId);
+    // First get the image filename if exists
+    $stmt = $conn->prepare("SELECT image FROM gym_equipment WHERE equipment_id = :equipment_id AND gym_id = :gym_id");
+    $stmt->execute([
+        ':equipment_id' => $equipmentId,
+        ':gym_id' => $gym_id
+    ]);
+    $equipment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Delete the equipment
+    $stmt = $conn->prepare("DELETE FROM gym_equipment WHERE gym_id = :gym_id AND equipment_id = :equipment_id");
+    $stmt->bindParam(':gym_id', $gym_id);
     $stmt->bindParam(':equipment_id', $equipmentId);
 
     if ($stmt->execute()) {
-        echo "<p class='bg-green-500 text-white p-4'>Equipment deleted successfully!</p>";
-    } else {
-        echo "<p class='bg-red-500 text-white p-4'>Failed to delete equipment.</p>";
+        // Delete the image file if it exists
+        if ($equipment && $equipment['image']) {
+            $image_path = "../uploads/equipments/" . $equipment['image'];
+            if (file_exists($image_path)) {
+                unlink($image_path);
+            }
+        }
+        header("Location: manage_equipment.php?success=deleted");
+        exit;
     }
-} else {
-    echo "<p class='bg-red-500 text-white p-4'>Equipment ID is missing.</p>";
 }
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delete Equipment</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-</head>
-<body class="bg-gray-100">
-    <div class="container mx-auto p-6">
-        <div class="bg-white shadow-lg rounded-lg p-6">
-            <h1 class="text-xl font-bold mb-4">Delete Equipment</h1>
-            <p class="text-lg">The selected equipment has been deleted successfully.</p>
-        </div>
-    </div>
-</body>
-</html>
+
+header("Location: manage_equipment.php?error=failed");
+exit;
