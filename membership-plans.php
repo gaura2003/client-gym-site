@@ -3,6 +3,12 @@ require_once 'config/database.php';
 require_once 'vendor/autoload.php';
 $db = new GymDatabase();
 $conn = $db->getConnection();
+session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
 
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();

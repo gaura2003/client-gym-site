@@ -1,6 +1,10 @@
 <?php
 require_once '../config/database.php';
-
+session_start();
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header('Location: /gym/login.php');
+    exit();
+}
 $db = new GymDatabase();
 $conn = $db->getConnection();
 
@@ -38,16 +42,9 @@ $tiers = $tierStmt->fetchAll(PDO::FETCH_COLUMN);
 $durationStmt = $conn->prepare("SELECT DISTINCT duration FROM cut_off_chart");
 $durationStmt->execute();
 $durations = $durationStmt->fetchAll(PDO::FETCH_COLUMN);
-?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update Cut-Off Percentages</title>
-</head>
-<body>
+include '../includes/navbar.php';
+?>
     <h1>Update Cut-Off Percentages</h1>
     <form method="POST">
         <label for="tier">Tier:</label>
@@ -72,5 +69,3 @@ $durations = $durationStmt->fetchAll(PDO::FETCH_COLUMN);
 
         <button type="submit">Update Percentages</button>
     </form>
-</body>
-</html>

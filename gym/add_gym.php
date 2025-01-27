@@ -31,10 +31,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Convert amenities array to JSON string
         $amenities_json = !empty($amenities) ? json_encode($amenities) : null;
 
+        $cover_photo_url = null;
+        if (isset($_FILES['cover_photo']) && $_FILES['cover_photo']['error'] === UPLOAD_ERR_OK) {
+            $upload_dir = 'uploads/gym_covers/';
+            $cover_photo_name = uniqid() . '_' . basename($_FILES['cover_photo']['name']);
+            $cover_photo_path = $upload_dir . $cover_photo_name;
+
+            if (move_uploaded_file($_FILES['cover_photo']['tmp_name'], $cover_photo_path)) {
+                $cover_photo_url = $cover_photo_path;
+            }
+        }
         // Insert Gym Details
         $query = "INSERT INTO gyms 
-            (owner_id, name, address, city, state, zip_code, contact_phone, contact_email, max_capacity, description, country, amenities, status)  
-            VALUES (:owner_id, :name, :address, :city, :state, :zip_code, :contact_phone, :contact_email, :capacity, :description, :country, :amenities, :status)";
+            (owner_id, name, address, city, state, zip_code, contact_phone, contact_email, max_capacity, description, country, amenities, status,cover_photo)  
+            VALUES (:owner_id, :name, :address, :city, :state, :zip_code, :contact_phone, :contact_email, :capacity, :description, :country, :amenities, :status ,:cover_photo_url)";
         $stmt = $conn->prepare($query);
         $stmt->execute([
             ':owner_id' => $gymOwnerId,
@@ -49,7 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             ':description' => $description,
             ':country' => $country,
             ':amenities' => $amenities_json,
-            ':status' => $status
+            ':status' => $status,
+            ':cover_photo_url' => $cover_photo_url
         ]);
 
         // Get the last inserted gym ID
@@ -149,24 +160,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
 
-        // Insert Membership Plans
+
+        // Insert Membership Plans with additional fields
         if (isset($_POST['membership_plans'])) {
             foreach ($_POST['membership_plans'] as $plan) {
-                $tier = $plan['tier'];
-                $duration = $plan['duration'];
-                $price = $plan['price'];
-                $inclusions = $plan['inclusions'];
-
                 $query = "INSERT INTO gym_membership_plans 
-                    (gym_id, tier, duration, price, inclusions) 
-                    VALUES (:gym_id, :tier, :duration, :price, :inclusions)";
+            (gym_id, plan_name, tier, duration, price, inclusions, best_for, plan_type, cut_type) 
+            VALUES (:gym_id, :plan_name, :tier, :duration, :price, :inclusions, :best_for, :plan_type, :cut_type)";
                 $stmt = $conn->prepare($query);
                 $stmt->execute([
                     ':gym_id' => $gym_id,
-                    ':tier' => $tier,
-                    ':duration' => $duration,
-                    ':price' => $price,
-                    ':inclusions' => $inclusions
+                    ':plan_name' => $plan['plan_name'],
+                    ':tier' => $plan['tier'],
+                    ':duration' => $plan['duration'],
+                    ':price' => $plan['price'],
+                    ':inclusions' => $plan['inclusions'],
+                    ':best_for' => $plan['best_for'],
+                    ':plan_type' => 'standard',
+                    ':cut_type' => 'tier_based'
                 ]);
             }
         }

@@ -62,13 +62,29 @@ $stmt = $conn->prepare("
 $stmt->execute([$gym_id]);
 $gym_images = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Fetch membership plans for this gym
+// Add this query after fetching gym details
 $planStmt = $conn->prepare("
-    SELECT * FROM gym_membership_plans 
-    WHERE gym_id = ? 
-    ORDER BY price ASC
+    SELECT DISTINCT
+        gmp.*,
+        coc.admin_cut_percentage,
+        coc.gym_owner_cut_percentage
+    FROM gym_membership_plans gmp
+    LEFT JOIN cut_off_chart coc ON gmp.tier = coc.tier 
+    AND gmp.duration = coc.duration
+    WHERE gmp.gym_id = ?
+    ORDER BY gmp.tier, 
+    CASE gmp.duration
+        WHEN 'Daily' THEN 1
+        WHEN 'Weekly' THEN 2
+        WHEN 'Monthly' THEN 3
+        WHEN 'Quartrly' THEN 4
+        WHEN 'Half Yearly' THEN 5
+        WHEN 'Yearly' THEN 6
+    END
 ");
 $planStmt->execute([$gym_id]);
 $plans = $planStmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 if (!isset($_SESSION['user_id']) && isset($_GET['gym_id'])) {  // Check for gym_id in GET parameter
     $_SESSION['return_to'] = $_SERVER['REQUEST_URI']; // Store the current URL in the session
@@ -204,37 +220,53 @@ include 'includes/navbar.php';
         <?php endforeach; ?>
     </div>
     <div class="mt-8">
-        <h3 class="text-2xl font-bold mb-6">Membership Plans</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <?php foreach ($plans as $plan): ?>
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <div class="text-xl font-bold mb-2">
-                        <?php echo ucfirst($plan['tier']); ?>
-                    </div>
-                    <div class="text-3xl font-bold mb-4">
-                        ₹<?php echo number_format($plan['price'], 2); ?>
-                        <span class="text-sm text-gray-600 font-normal">
-                            /<?php echo strtolower($plan['duration']); ?>
-                        </span>
-                    </div>
-                    <div class="text-gray-600 mb-4">
-                        <?php echo htmlspecialchars($plan['inclusions']); ?>
-                    </div>
-                    <?php if (isset($_SESSION['user_id'])): ?>
-                        <a href="buy_membership.php?plan_id=<?php echo $plan['plan_id']; ?>&gym_id=<?php echo $gym_id; ?>&price=<?php echo $plan['price']; ?>"
-                            class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-center block" id="select-plan">
-                            Select Plan
-                        </a>
-                    <?php else: ?>
-                        <a href="login.php"
-                            class="block text-center w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                            Login to Subscribe
-                        </a>
-                    <?php endif; ?>
+    <h3 class="text-2xl font-bold mb-6">Membership Plans</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <?php foreach ($plans as $plan): ?>
+            <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+                <div class="text-xl font-bold mb-2 text-blue-600">
+                    <?php echo htmlspecialchars($plan['tier']); ?>
                 </div>
-            <?php endforeach; ?>
-        </div>
+                <div class="text-3xl font-bold mb-4">
+                    ₹<?php echo number_format($plan['price'], 2); ?>
+                    <span class="text-sm text-gray-600 font-normal">
+                        /<?php echo strtolower($plan['duration']); ?>
+                    </span>
+                </div>
+                <div class="text-gray-600 mb-4">
+                    <?php echo htmlspecialchars($plan['inclusions']); ?>
+                </div>
+                <div class="text-sm text-gray-500 mb-4">
+                    <p>Best For: <?php echo htmlspecialchars($plan['best_for']); ?></p>
+                </div>
+                <ul class="text-sm text-gray-600 mb-6 space-y-2">
+                    <?php 
+                    $inclusions = explode(',', $plan['inclusions']);
+                    foreach ($inclusions as $inclusion): ?>
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <?php echo htmlspecialchars(trim($inclusion)); ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <a href="buy_membership.php?plan_id=<?php echo $plan['plan_id']; ?>&gym_id=<?php echo $gym_id; ?>"
+                        class="block w-full bg-blue-600 text-white text-center px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Select Plan
+                    </a>
+                <?php else: ?>
+                    <a href="login.php" 
+                        class="block w-full bg-blue-600 text-white text-center px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Login to Subscribe
+                    </a>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
     </div>
+</div>
+
 
     <div class="mt-8">
         <h3 class="text-2xl font-bold mb-6">Write a Review</h3>

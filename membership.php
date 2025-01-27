@@ -96,10 +96,7 @@ $membership = $stmt->fetch(PDO::FETCH_ASSOC);
                 </a>
             </div>
         </div>
-    <?php else: ?>
-        <div class="text-center text-gray-600">
-            <h2 class="text-xl font-semibold">No Active Membership Found</h2>
-            <p class="mt-4">Explore our <a href="gym.php" class="text-blue-600 underline">membership plans</a>.</p>
-        </div>
-    <?php endif; ?>
+    <?php else: 
+    include 'gym.php';
+    endif; ?>
 </div>

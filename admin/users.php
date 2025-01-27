@@ -22,9 +22,12 @@ include '../includes/navbar.php';
     <div class="bg-white shadow-md rounded">
         <table class="min-w-full">
             <thead>
-                <tr class="bg-gray-100">
+                <tr class="bg-gray-100 text-left">
                     <th class="px-6 py-3">Username</th>
                     <th class="px-6 py-3">Email</th>
+                    <th class="px-6 py-3">Phone</th>
+                    <th class="px-6 py-3">City</th>
+                    <th class="px-6 py-3">Balance</th>
                     <th class="px-6 py-3">Role</th>
                     <th class="px-6 py-3">Status</th>
                     <th class="px-6 py-3">Actions</th>
@@ -32,9 +35,12 @@ include '../includes/navbar.php';
             </thead>
             <tbody>
                 <?php foreach ($users as $user): ?>
-                <tr class="border-b text-center">
+                <tr class="border-b ">
                     <td class="px-6 py-4"><?php echo $user['username']; ?></td>
                     <td class="px-6 py-4"><?php echo $user['email']; ?></td>
+                    <td class="px-6 py-4"><?php echo $user['phone']; ?></td>
+                    <td class="px-6 py-4"><?php echo $user['city']; ?></td>
+                    <td class="px-6 py-4"><?php echo $user['balance']; ?></td>
                     <td class="px-6 py-4"><?php echo $user['role']; ?></td>
                     <td class="px-6 py-4"><?php echo $user['status']; ?></td>
                     <td class="px-6 py-4">

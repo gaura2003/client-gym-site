@@ -36,7 +36,7 @@ $sql = "
     FROM gyms g 
     JOIN gym_membership_plans gmp ON g.gym_id = gmp.gym_id
     WHERE g.status = 'active'
-    AND gmp.duration = 'Monthly'";
+    AND gmp.duration = 'Monthly' AND gmp.plan_type ='Premium'";
 
 $params = [];
 

@@ -26,19 +26,26 @@ $membershipPlans = $planStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Build query with filters
 $query = "
-    SELECT 
-        u.id, u.username, u.email, u.status as user_status,
-        um.status as membership_status, um.start_date, um.end_date,
-        mp.name as plan_name, mp.visit_limit,
-        g.name as gym_name,
-        COUNT(s.id) as total_schedules,
-        (mp.visit_limit - COUNT(s.id)) as remaining_schedules
-    FROM users u
-    LEFT JOIN user_memberships um ON u.id = um.user_id
-    LEFT JOIN membership_plans mp ON um.plan_id = mp.id
-    LEFT JOIN gyms g ON um.gym_id = g.gym_id
-    LEFT JOIN schedules s ON u.id = s.user_id AND s.check_in_time BETWEEN um.start_date AND um.end_date
-    WHERE u.role = 'member'
+SELECT 
+    u.id, u.username, u.email, u.status as user_status,
+    um.status as membership_status, um.start_date, um.end_date,
+    gmp.plan_name, gmp.duration, gmp.price,
+    g.name as gym_name,
+    (SELECT COUNT(*) FROM schedules s2 
+     WHERE s2.user_id = u.id 
+     AND s2.start_date BETWEEN um.start_date AND um.end_date) as used_visits,
+    CASE 
+        WHEN gmp.duration = 1 THEN 30
+        WHEN gmp.duration = 3 THEN 90
+        WHEN gmp.duration = 6 THEN 180
+        WHEN gmp.duration = 12 THEN 365
+        ELSE gmp.duration * 30
+    END as total_visits
+FROM users u
+LEFT JOIN user_memberships um ON u.id = um.user_id
+LEFT JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
+LEFT JOIN gyms g ON um.gym_id = g.gym_id
+WHERE u.role = 'member'
 ";
 
 if ($gym_id !== 'all') {
@@ -51,7 +58,7 @@ if ($search) {
     $query .= " AND (u.username LIKE :search OR u.email LIKE :search)";
 }
 if ($plan_id) {
-    $query .= " AND mp.id = :plan_id";
+    $query .= " AND gmp.plan_id = :plan_id";
 }
 
 $query .= " GROUP BY u.id, um.id";
@@ -122,8 +129,7 @@ include '../includes/navbar.php';
                 <select name="plan_id" class="mt-1 block w-full rounded-md border-gray-300">
                     <option value="">All Plans</option>
                     <?php foreach ($membershipPlans as $plan): ?>
-                        <option value="<?php echo $plan['id']; ?>" 
-                                <?php echo ($plan_id == $plan['id']) ? 'selected' : ''; ?>>
+                        <option value="<?php echo $plan['id']; ?>" <?php echo ($plan_id == $plan['id']) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($plan['name']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -150,6 +156,7 @@ include '../includes/navbar.php';
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gym</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Membership</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedules</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -160,13 +167,34 @@ include '../includes/navbar.php';
                     <tr>
                         <td class="px-6 py-4">
                             <div class="text-sm font-medium text-gray-900">
-                                <?php echo htmlspecialchars($member['username']); ?></div>
+                                <?php echo htmlspecialchars($member['username']); ?>
+                            </div>
                             <div class="text-sm text-gray-500"><?php echo htmlspecialchars($member['email']); ?></div>
                         </td>
                         <td class="px-6 py-4"><?php echo htmlspecialchars($member['gym_name']); ?></td>
-                        <td class="px-6 py-4"><?php echo htmlspecialchars($member['plan_name']); ?></td>
-                        <td class="px-6 py-4">Used: <?php echo $member['total_schedules']; ?> / Remaining:
-                            <?php echo $member['remaining_schedules']; ?></td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                <?php echo htmlspecialchars($member['plan_name']); ?>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                Duration: <?php echo $member['duration']; ?>
+                                <br>
+                                Price: ₹<?php echo number_format($member['price'], 2); ?>
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-4">₹<?php echo number_format($member['price'], 2); ?></td>
+
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900">
+                                <span class="font-medium">Used:</span> <?php echo $member['used_visits']; ?>
+                            </div>
+                           
+                            <div class="text-sm text-gray-500">
+                                <span class="font-medium">Total Limit:</span> <?php echo $member['total_visits']; ?>
+                            </div>
+                        </td>
+
                         <td class="px-6 py-4">
                             <span
                                 class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -189,7 +217,8 @@ include '../includes/navbar.php';
     <!-- Pagination -->
     <div class="flex justify-between items-center mt-4">
         <p class="text-sm text-gray-500">Showing <?php echo $offset + 1; ?> to
-            <?php echo min($offset + $limit, $totalRecords); ?> of <?php echo $totalRecords; ?> results</p>
+            <?php echo min($offset + $limit, $totalRecords); ?> of <?php echo $totalRecords; ?> results
+        </p>
         <div class="space-x-2">
             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                 <a href="?page=<?php echo $i; ?>&gym_id=<?php echo $gym_id; ?>&membership=<?php echo $membership; ?>&plan_id=<?php echo $plan_id; ?>&search=<?php echo $search; ?>"

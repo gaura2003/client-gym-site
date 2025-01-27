@@ -300,7 +300,10 @@ if ($isSlotAvailable) {
 <!-- Replace the existing modal form with this -->
 <div id="updateModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div id="errorMessage" class="hidden mb-4 p-3 rounded bg-red-100 text-red-700"></div>
+
         <h3 class="text-lg font-bold mb-4">Update Schedule</h3>
+
         <form action="process_schedule_update.php" method="POST" class="space-y-4">
     <!-- Hidden Fields -->
     <input type="hidden" id="selectedGymId" name="new_gym_id" required>
@@ -308,6 +311,9 @@ if ($isSlotAvailable) {
     <input type="hidden" name="user_id" value="<?php echo $_SESSION['user_id']; ?>" required>
     <input type="hidden" name="membership_id" value="<?php echo $activeMembership['id']; ?>" required>
     <input type="hidden" name="start_time" id="selectedTimeSlot" required>
+    
+    <!-- check message -->
+    <div id="errorMessage" class="hidden mb-4 p-3 rounded bg-red-100 text-red-700"></div>
 
     <!-- Date Range -->
     <div>
@@ -326,20 +332,25 @@ if ($isSlotAvailable) {
     </div>
 
     <div>
-                        <label class="block text-sm font-medium text-gray-700">Time Slot</label>
-                    <select name="start_time" required
-                        class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <?php foreach ($timeSlots as $time):
-                            $currentOccupancy = isset($occupancyByTime[$time]) ? $occupancyByTime[$time] : 0;
-                            $isSlotFull = $currentOccupancy >= 50;
-                            ?>
-                            <option value="<?= $time ?>" <?= $isSlotFull ? 'disabled' : '' ?>>
-                                <?= date('g:i A', strtotime($time)) ?>
-                                (<?= $currentOccupancy ?>/50 members)
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+    <label class="block text-sm font-medium text-gray-700">Time Slot</label>
+    <select name="start_time" required
+        class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <?php foreach ($timeSlots as $time):
+            $currentOccupancy = isset($occupancyByTime[$time]) ? $occupancyByTime[$time] : 0;
+            $isSlotFull = $currentOccupancy >= 50;
+            ?>
+            <option value="<?= $time ?>" <?= $isSlotFull ? 'disabled' : '' ?>>
+                <?= date('g:i A', strtotime($time)) ?>
+                (<?= $currentOccupancy ?>/50 members)
+            </option>
+        <?php endforeach; ?>
+    </select>
+    <!-- Add validation message display -->
+    <div id="timeValidationMessage" class="mt-2 text-sm text-red-600 hidden">
+        Cannot update past schedules. Please select a future time slot.
+    </div>
+</div>
+
 
 
     <!-- Notes -->
@@ -394,5 +405,104 @@ function showSchedulePopup(endDate) {
     `;
     document.body.insertAdjacentHTML('beforeend', popup);
 }
+function validateTimeSlot() {
+    const selectedTime = document.querySelector('select[name="start_time"]').value;
+    const currentTime = new Date();
+    const selectedDateTime = new Date(document.querySelector('input[name="start_date"]').value + ' ' + selectedTime);
+    
+    const messageElement = document.getElementById('timeValidationMessage');
+    
+    if (selectedDateTime <= currentTime) {
+        messageElement.classList.remove('hidden');
+        return false;
+    }
+    
+    messageElement.classList.add('hidden');
+    return true;
+}
 
+
+function extendSchedule(endDate) {
+    const newEndDate = new Date(endDate);
+    newEndDate.setDate(newEndDate.getDate() + 1);
+    const formattedEndDate = newEndDate.toISOString().split('T')[0];
+    document.querySelector('input[name="end_date"]').value = formattedEndDate;
+    closePopup();
+}
+
+// Add comprehensive validation
+function validateScheduleUpdate() {
+    const selectedDate = new Date(document.querySelector('input[name="start_date"]').value);
+    const selectedTime = document.querySelector('select[name="start_time"]').value;
+    const selectedDateTime = new Date(selectedDate.toDateString() + ' ' + selectedTime);
+    const currentDateTime = new Date();
+    const timeBuffer = new Date(currentDateTime.getTime() + (15 * 60000)); // 15 minutes buffer
+    
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.classList.remove('hidden');
+
+    // Past date check
+    if (selectedDate < new Date().setHours(0,0,0,0)) {
+        errorDiv.textContent = "Cannot update past schedules";
+        return false;
+    }
+
+    // Same day checks
+    if (selectedDate.toDateString() === currentDateTime.toDateString()) {
+        if (selectedDateTime <= currentDateTime) {
+            errorDiv.textContent = "Cannot update schedule for past time slots";
+            return false;
+        }
+        
+        if (selectedDateTime <= timeBuffer) {
+            errorDiv.textContent = "Schedule can only be updated at least 15 minutes before the slot time";
+            return false;
+        }
+    }
+
+    errorDiv.classList.add('hidden');
+    return true;
+}
+
+// Update form submission handler
+document.getElementById('updateScheduleForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!validateScheduleUpdate()) {
+        return false;
+    }
+
+    fetch('process_schedule_update.php', {
+        method: 'POST',
+        body: new FormData(this)
+    })
+    .then(response => response.json())
+    .then(data => {
+        const errorDiv = document.getElementById('errorMessage');
+        
+        if (!data.success) {
+            // Show error message
+            errorDiv.textContent = data.error;
+            errorDiv.classList.remove('hidden');
+        } else {
+            // Success - redirect to schedule page
+            window.location.href = 'user_schedule.php';
+        }
+    })
+    .catch(error => {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = 'An error occurred while processing your request';
+        errorDiv.classList.remove('hidden');
+    });
+});
+
+// Add event listeners for real-time validation
+document.querySelector('input[name="start_date"]').addEventListener('change', validateScheduleUpdate);
+document.querySelector('select[name="start_time"]').addEventListener('change', validateScheduleUpdate);
+
+function closeModal() {
+    document.getElementById('updateModal').classList.add('hidden');
+    // Clear any error messages when modal is closed
+    document.getElementById('errorMessage').classList.add('hidden');
+}
 </script>

@@ -32,14 +32,37 @@ class NavbarDatabase
 $db = new NavbarDatabase();
 $conn = $db->getConnection();
 
-// Get unread notifications count
+// Get unread notifications count based on role
 $unreadNotificationsCount = 0;
 if ($isLoggedIn) {
-    $query = "SELECT COUNT(*) FROM notifications WHERE (user_id = ? OR gym_id = ?) AND status = 'unread'";
-    $stmt = $conn->prepare($query);
-    $stmt->execute([$user_id, $user_id]);
+    if ($role === 'admin') {
+        // Admin sees all system notifications
+        $query = "SELECT COUNT(*) FROM notifications 
+                 WHERE admin_id IS NULL 
+                 AND status = 'unread'";
+        $stmt = $conn->prepare($query);
+        $stmt->execute();
+        
+    } elseif ($role === 'member') {
+        // Users see their personal notifications
+        $query = "SELECT COUNT(*) FROM notifications 
+                 WHERE user_id = ? 
+                 AND status = 'unread'";
+        $stmt = $conn->prepare($query);
+        $stmt->execute([$user_id]);
+        
+    } elseif (isset($_SESSION['owner_id'])) {
+        // Gym owners see notifications for their gym
+        $query = "SELECT COUNT(*) FROM notifications 
+                 WHERE gym_id = (SELECT gym_id FROM gyms WHERE owner_id = ?) 
+                 AND status = 'unread'";
+        $stmt = $conn->prepare($query);
+        $stmt->execute([$_SESSION['owner_id']]);
+    }
+    
     $unreadNotificationsCount = $stmt->fetchColumn();
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -50,9 +73,99 @@ if ($isLoggedIn) {
     <title>Gym Management System</title>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.10.2/dist/cdn.min.js" defer></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .gym-loader {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fbbf24;
+        }
+
+        .weightlifter i {
+            font-size: 60px;
+            animation: lift 1.5s infinite;
+            display: none;
+        }
+
+        .dumbbell i {
+            font-size: 40px;
+            margin-left: 20px;
+            animation: rotate 2s infinite linear;
+        }
+
+        @keyframes lift {
+            0% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loader = document.querySelector('.loader-container');
+
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    setTimeout(() => {
+                        loader.style.display = 'none';
+                    }, 100);
+                }, 100);
+            });
+        });
+
+    </script>
+
 </head>
 
 <body class="bg-gray-100">
+    <!-- Loader -->
+    <div class="loader-container">
+        <div class="gym-loader">
+            <div class="weightlifter">
+                <i class="fas fa-running"></i>
+            </div>
+            <div class="dumbbell">
+                <i class="fas fa-dumbbell"></i>
+            </div>
+        </div>
+    </div>
+    <!-- Navbar -->
     <nav x-data="{ open: false }" class="bg-gradient-to-r from-gray-800 via-gray-700 to-gray-900 shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
@@ -103,18 +216,21 @@ if ($isLoggedIn) {
                                 class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Profile</a>
                         <?php elseif (isset($_SESSION['owner_id'])): ?>
                             <a href="../gym/dashboard.php"
-                                class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Dashboard</a>
+                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Dashboard</a>
                             <a href="../gym/edit_gym_details.php"
-                                class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">My
+                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">My
                                 Gyms</a>
                             <a href="../gym/manage_equipment.php"
-                                class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Equipment</a>
-                            <a href="../gym/bookings.php"
-                                class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Schedules</a>
+                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Equipment</a>
+                            <a href="../gym/booking.php"
+                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Schedules</a>
                             <a href="../gym/member_list.php"
-                                class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Members</a>
+                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Members</a>
                             <a href="../gym/earning-history.php"
-                                class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Earn
+                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Earn
+                                History</a>
+                            <a href="../gym/visit_attendance.php"
+                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Visit
                                 History</a>
                         <?php else: ?>
                             <a href="/gym/"
@@ -232,6 +348,3 @@ if ($isLoggedIn) {
             </div>
         </div>
     </nav>
-</body>
-
-</html>

@@ -16,15 +16,18 @@ $membership_id = filter_input(INPUT_POST, 'membership_id', FILTER_VALIDATE_INT);
 $gym_id = filter_input(INPUT_POST, 'gym_id', FILTER_VALIDATE_INT);
 $start_date = filter_input(INPUT_POST, 'start_date', FILTER_SANITIZE_STRING);
 $end_date = filter_input(INPUT_POST, 'end_date', FILTER_SANITIZE_STRING);
-$start_time = filter_input(INPUT_POST, 'start_time', FILTER_SANITIZE_STRING);
+$start_time = filter_input(INPUT_POST, 'time_slot', FILTER_SANITIZE_STRING); // Changed from start_time
 $activity_type = filter_input(INPUT_POST, 'activity_type', FILTER_SANITIZE_STRING);
 $notes = filter_input(INPUT_POST, 'notes', FILTER_SANITIZE_STRING);
+$recurring = filter_input(INPUT_POST, 'recurring', FILTER_SANITIZE_STRING);
+$days = $_POST['days'] ?? null; // For weekly schedule
 
-if (!$membership_id || !$gym_id || !$start_date || !$end_date || !$start_time) {
+if (!$membership_id || !$gym_id || !$start_date || !$end_date || !$start_time || !$activity_type || !$notes) {
     $_SESSION['error'] = "All fields are required";
     header('Location: schedule.php');
     exit();
 }
+
 
 function getExactDaysBetween($start_date, $end_date) {
     $start = new DateTime($start_date);

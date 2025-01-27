@@ -90,92 +90,111 @@ $stmt = $conn->prepare("
 $stmt->execute([$membership_id, $user_id]);
 $membership = $stmt->fetch(PDO::FETCH_ASSOC);
 
-
-if ($membership) {
-    ?>
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
-            <div class="text-green-500 mb-4">
-                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-            </div>
-
-            <h1 class="text-2xl font-bold mb-4">Membership Activated!</h1>
-
-            <div class="bg-gray-50 rounded-lg p-6 mb-6">
-                <h2 class="font-semibold text-lg mb-4">Membership Details</h2>
-                <div class="space-y-3 text-left">
-                    <div>
-                        <span class="font-medium">Gym:</span>
-                        <span class="text-gray-700"><?php echo htmlspecialchars($membership['gym_name'] ?? 'N/A'); ?></span>
+if ($membership): ?>
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12">
+        <div class="max-w-xl mx-auto px-4">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <!-- Success Header -->
+                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-center">
+                    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
                     </div>
-                    <div>
-                        <span class="font-medium">Plan:</span>
-                        <span
-                            class="text-gray-700"><?php echo htmlspecialchars($membership['plan_name'] ?? 'N/A'); ?></span>
+                    <h1 class="text-3xl font-bold text-white mb-2">Welcome Aboard!</h1>
+                    <p class="text-blue-100">Your membership has been successfully activated</p>
+                </div>
+    
+                <!-- Membership Details -->
+                <div class="p-8">
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8">
+                        <h2 class="font-semibold text-xl text-gray-800 mb-6">Membership Details</h2>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-sm text-gray-500">Gym Name</p>
+                                    <p class="font-semibold text-gray-800"><?= htmlspecialchars($membership['gym_name'] ?? 'N/A') ?></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Plan Type</p>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                        <?= htmlspecialchars($membership['plan_name'] ?? 'N/A') ?>
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Duration</p>
+                                    <p class="font-semibold text-gray-800"><?= htmlspecialchars($membership['duration'] ?? 'N/A') ?></p>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-sm text-gray-500">Start Date</p>
+                                    <p class="font-semibold text-gray-800">
+                                        <?= isset($membership['start_date']) ? date('d M Y', strtotime($membership['start_date'])) : 'N/A' ?>
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">End Date</p>
+                                    <p class="font-semibold text-gray-800">
+                                        <?= isset($membership['end_date']) ? date('d M Y', strtotime($membership['end_date'])) : 'N/A' ?>
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Status</p>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                        Active
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- Inclusions -->
+                        <div class="mt-6">
+                            <p class="text-sm text-gray-500 mb-3">Membership Inclusions</p>
+                            <div class="flex flex-wrap gap-2">
+                                <?php foreach (explode(',', $membership['inclusions'] ?? '') as $inclusion): ?>
+                                <span class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">
+                                    <?= trim(htmlspecialchars($inclusion)) ?>
+                                </span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <span class="font-medium">Duration:</span>
-                        <span class="text-gray-700"><?php echo htmlspecialchars($membership['duration'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div>
-                        <span class="font-medium">Start Date:</span>
-                        <span
-                            class="text-gray-700"><?php echo isset($membership['start_date']) ? date('d M Y', strtotime($membership['start_date'])) : 'N/A'; ?></span>
-                    </div>
-                    <div>
-                        <span class="font-medium">End Date:</span>
-                        <span
-                            class="text-gray-700"><?php echo isset($membership['end_date']) ? date('d M Y', strtotime($membership['end_date'])) : 'N/A'; ?></span>
-                    </div>
-                    <div>
-                        <span class="font-medium">Status:</span>
-                        <span
-                            class="text-green-600 font-semibold"><?php echo ucfirst($membership['payment_status'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div>
-                        <span class="font-medium">Location:</span>
-                        <span class="text-gray-700"><?php echo htmlspecialchars($membership['address'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div>
-                        <span class="font-medium">Inclusions:</span>
-                        <span
-                            class="text-gray-700"><?php echo htmlspecialchars($membership['inclusions'] ?? 'N/A'); ?></span>
+    
+                    <!-- Action Buttons -->
+                    <div class="space-y-4">
+                        <a href="schedule.php?gym_id=<?= htmlspecialchars($membership['gym_id'] ?? '') ?>"
+                            class="block w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-center py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition duration-300 transform hover:scale-[1.02]">
+                            Schedule Your First Workout
+                        </a>
+                        <a href="dashboard.php"
+                            class="block w-full bg-gray-100 text-gray-700 text-center py-4 rounded-xl font-semibold hover:bg-gray-200 transition duration-300">
+                            View Dashboard
+                        </a>
                     </div>
                 </div>
             </div>
-
-            <div class="space-y-4">
-                <a href="schedule.php?gym_id=<?php echo htmlspecialchars($membership['gym_id'] ?? ''); ?>"
-                    class="block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 text-center">
-                    Schedule Your First Workout
-                </a>
-                <a href="dashboard.php"
-                    class="block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 text-center">
-                    View Dashboard
-                </a>
-            </div>
         </div>
     </div>
-    <?php
-} else {
-    // Display a message when no membership data is found
-    ?>
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6 text-center">
-            <h1 class="text-2xl font-bold mb-4">Payment Processed</h1>
-            <p class="text-gray-600 mb-6">Your payment has been processed successfully. View your membership details on the
-                dashboard.</p>
-            <a href="dashboard.php" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+    
+    <?php else: ?>
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center px-4">
+        <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">Payment Successful!</h1>
+            <p class="text-gray-600 mb-8">Your payment has been processed successfully. View your membership details on the dashboard.</p>
+            <a href="dashboard.php" 
+               class="inline-block w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition duration-300">
                 Go to Dashboard
             </a>
         </div>
     </div>
-    <?php
-}
-?>
-
+    <?php endif; ?>
+    
 <!-- <script>
     setTimeout(function() {
         window.location.href = 'schedule.php?gym_id=<?php echo htmlspecialchars($membership['gym_id']); ?>';

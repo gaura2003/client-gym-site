@@ -20,24 +20,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Invalid email format");
         }
 
+        // First try gym owner login
+        $stmt = $conn->prepare("SELECT id, name, email, password_hash, is_verified, is_approved FROM gym_owners WHERE email = ? LIMIT 1");
+        $stmt->execute([$email]);
+        $owner = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($owner && password_verify($password, $owner['password_hash'])) {
+            if ($owner['is_verified'] == 0) {
+                throw new Exception("Your account is not verified yet.");
+            }
+            if ($owner['is_approved'] == 0) {
+                throw new Exception("Your account is pending approval.");
+            }
+
+            session_regenerate_id(true);
+            $_SESSION['owner_id'] = $owner['id'];
+            $_SESSION['role'] = 'gym_owner';
+            $_SESSION['username'] = $owner['name'];
+            $_SESSION['last_activity'] = time();
+
+            header("Location: gym/dashboard.php");
+            exit();
+        }
+
+        // If not a gym owner, try regular user login
         if ($auth->login($email, $password)) {
-            $_SESSION['success'] = "Login successful!";
-            if (isset($_SESSION['user_id'])) {
-                if (isset($_SESSION['return_to'])) {
-                    $return_url = $_SESSION['return_to'];
-                    unset($_SESSION['return_to']); // Clear the session variable after redirect
-                    header("Location: $return_url"); // Redirect to the stored URL
-                    exit();
-                } else {
-                    // Redirect to the default page after login (e.g., user dashboard)
-                    header("Location: dashboard.php"); // Replace with your default page
-                    exit();
-                }
+            if (isset($_SESSION['return_to'])) {
+                $return_url = $_SESSION['return_to'];
+                unset($_SESSION['return_to']);
+                header("Location: $return_url");
+            } else {
+                header("Location: dashboard.php");
             }
             exit();
-        } else {
-            throw new Exception("Invalid email or password.");
         }
+
+        throw new Exception("Invalid email or password.");
     } catch (Exception $e) {
         $error = $e->getMessage();
     }

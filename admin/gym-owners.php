@@ -13,7 +13,7 @@ $conn = $db->getConnection();
 // Fetch all gym owners with their gyms
 $stmt = $conn->prepare("
     SELECT 
-        go.*,
+        go.*, g.balance,
         COUNT(g.gym_id) as total_gyms,
         GROUP_CONCAT(g.name) as gym_names
     FROM gym_owners go
@@ -44,6 +44,7 @@ include '../includes/navbar.php';
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gyms</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
@@ -90,6 +91,11 @@ include '../includes/navbar.php';
                                 <?php echo htmlspecialchars($owner['gym_names']); ?>
                             </div>
                         <?php endif; ?>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold  text-yellow-800">
+                            <?php echo $owner['balance'] ; ?>
+                        </span>
                     </td>
                     <td class="px-6 py-4 text-sm font-medium">
                         <a href="view-owners.php?id=<?php echo $owner['id']; ?>" 
