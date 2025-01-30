@@ -52,7 +52,7 @@ include '../includes/navbar.php';
                     </div>
                     <div>
                         <h1 class="text-2xl font-bold">Schedule for <?php echo htmlspecialchars($member['username']); ?></h1>
-                        <p class="text-gray-300"><?php echo htmlspecialchars($member['plan_name']); ?> Plan</p>
+                        <p class="text-white "><?php echo htmlspecialchars($member['plan_name']); ?> Plan</p>
                     </div>
                 </div>
                 <span class="px-4 py-2 rounded-full <?php 

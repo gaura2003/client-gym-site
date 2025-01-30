@@ -60,7 +60,7 @@ $payment_methods = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
                 <div>
                     <h1 class="text-2xl font-bold text-white">Withdraw Funds</h1>
-                    <p class="text-gray-300">Available Balance: ₹<?php echo number_format($balance['total_revenue'], 2); ?></p>
+                    <p class="text-white ">Available Balance: ₹<?php echo number_format($balance['total_revenue'], 2); ?></p>
                 </div>
             </div>
         </div>
@@ -237,7 +237,7 @@ $payment_methods = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <?php endforeach; ?>
                 <?php else: ?>
                     <div class="text-center py-12">
-                        <div class="h-24 w-24 mx-auto mb-4 text-gray-300">
+                        <div class="h-24 w-24 mx-auto mb-4 text-white ">
                             <i class="fas fa-file-invoice-dollar text-6xl"></i>
                         </div>
                         <p class="text-gray-500">No withdrawal history available</p>

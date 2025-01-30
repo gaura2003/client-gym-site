@@ -28,12 +28,49 @@ if (!$membership_id || !$gym_id || !$start_date || !$end_date || !$start_time ||
     exit();
 }
 
-
 function getExactDaysBetween($start_date, $end_date) {
     $start = new DateTime($start_date);
     $end = new DateTime($end_date);
     $interval = $start->diff($end);
     return $interval->days + 1;
+}
+function hasValidBalance($userId, $membershipPrice,  $totalDays, $conn) {
+    $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $userBalance = $stmt->fetchColumn();
+    
+    // Calculate daily rate from membership price and duration
+    $dailyRate = $membershipPrice / $totalDays;
+    // Calculate total required amount for selected days
+    $totalRequired = $dailyRate * $totalDays;
+    
+    return [
+        'hasBalance' => $userBalance >= $totalRequired,
+        'totalRequired' => $totalRequired,
+        'userBalance' => $userBalance
+    ];
+}
+
+// Calculate total days for selected period
+$totalDays = getExactDaysBetween($start_date, $end_date);
+
+// Get membership details and check balance
+$membershipStmt = $conn->prepare("
+    SELECT gmp.price, gmp.duration 
+    FROM user_memberships um
+    JOIN gym_membership_plans gmp ON um.plan_id = gmp.plan_id
+    WHERE um.id = ? AND um.user_id = ?
+");
+$membershipStmt->execute([$membership_id, $user_id]);
+$membershipDetails = $membershipStmt->fetch(PDO::FETCH_ASSOC);
+
+$balanceCheck = hasValidBalance($user_id, $membershipDetails['price'],  $totalDays, $conn);
+
+if (!$balanceCheck['hasBalance']) {
+    $_SESSION['error'] = "Insufficient balance. Required amount: " . number_format($balanceCheck['totalRequired'], 2) . 
+                        ". Your balance: " . number_format($balanceCheck['userBalance'], 2).". Please top up your balance." ;
+    header('Location: gym_details.php?gym_id=' . $gym_id);
+    exit();
 }
 
 try {
@@ -195,7 +232,7 @@ $stmt->execute([$gym_id, $start_time, $gym_id]);
 
     $conn->commit();
     $_SESSION['success'] = "Schedule created successfully for $total_days days";
-    header('Location: user_schedule.php');
+    header('Location: schedule-history.php');
     exit();
 
 } catch (Exception $e) {

@@ -72,7 +72,7 @@ include '../includes/navbar.php';
                     </div>
                     <div>
                         <h1 class="text-3xl font-bold"><?php echo htmlspecialchars($member['username']); ?></h1>
-                        <p class="text-gray-300">
+                        <p class="text-white ">
                             <i class="fas fa-envelope mr-2"></i><?php echo htmlspecialchars($member['email']); ?>
                         </p>
                     </div>

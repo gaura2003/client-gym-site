@@ -104,7 +104,7 @@ include '../includes/navbar.php';
                     </div>
                     <div>
                         <h1 class="text-2xl font-bold text-white">Membership Plans</h1>
-                        <p class="text-gray-300"><?php echo htmlspecialchars($gym['name']); ?></p>
+                        <p class="text-white "><?php echo htmlspecialchars($gym['name']); ?></p>
                     </div>
                 </div>
                 <button onclick="openAddModal()" 

@@ -97,145 +97,168 @@ if ($memberships) {
 
 include 'includes/navbar.php';
 ?>
-
-<div class="min-h-screen bg-gray-100 py-8">
-    <div class="max-w-7xl mx-auto px-4">
-        <!-- Membership Selection -->
-        <div class="mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Select Membership to Schedule</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <?php foreach ($memberships as $membership): ?>
-                    <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
-                        onclick="selectMembership(<?= $membership['membership_id'] ?>, '<?= htmlspecialchars($membership['gym_name']) ?>')">
-                        <div class="h-32 bg-cover bg-center"
-                            style="background-image: url('./gym/uploads/gym_images/<?= $membership['cover_photo'] ?? 'assets/default-gym.jpg' ?>')">
-                        </div>
-                        <div class="p-6">
-                            <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 class="text-xl font-bold text-gray-800">
-                                        <?= htmlspecialchars($membership['gym_name']) ?>
-                                    </h3>
-                                    <p class="text-blue-600"><?= htmlspecialchars($membership['tier']) ?> Plan</p>
-                                </div>
-                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">Active</span>
-                            </div>
-                            <div class="space-y-2 text-sm text-gray-600">
-                                <p>Valid till: <?= date('d M Y', strtotime($membership['end_date'])) ?></p>
-                                <p>Location: <?= htmlspecialchars($membership['city']) ?></p>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+<div class="min-h-screen bg-gradient-to-b from-gray-900 to-black py-12">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Balance Display -->
+        <div class="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-3xl overflow-hidden mb-8">
+            <div class="p-6">
+                <h4 class="text-2xl font-bold text-white flex items-center">
+                    <i class="fas fa-wallet text-yellow-400 mr-2"></i>
+                    Your Balance: ₹<?= number_format($userBalance, 2) ?>
+                </h4>
             </div>
         </div>
+
+        <!-- Membership Selection -->
+        <h2 class="text-3xl font-bold text-white mb-8 text-center">Select Membership to Schedule</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <?php foreach ($memberships as $membership): ?>
+                <div class="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-3xl overflow-hidden transform hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
+                    onclick="selectMembership(<?= $membership['membership_id'] ?>, '<?= htmlspecialchars($membership['gym_name']) ?>')">
+                    <!-- Header Section -->
+                    <div class="p-6 bg-gradient-to-r from-yellow-400 to-yellow-500">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-bold text-gray-900">
+                                <?= htmlspecialchars($membership['gym_name']) ?>
+                            </h3>
+                            <span class="px-4 py-1 rounded-full text-sm font-medium bg-green-900 text-green-100">
+                                Active
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Details Section -->
+                    <div class="p-6">
+                        <p class="text-yellow-400 text-lg mb-4"><?= htmlspecialchars($membership['tier']) ?> Plan</p>
+                        <div class="space-y-3 text-white">
+                            <p class="flex items-center">
+                                <i class="far fa-calendar-alt text-yellow-400 mr-2"></i>
+                                Valid till: <?= date('d M Y', strtotime($membership['end_date'])) ?>
+                            </p>
+                            <p class="flex items-center">
+                                <i class="fas fa-map-marker-alt text-yellow-400 mr-2"></i>
+                                Location: <?= htmlspecialchars($membership['city']) ?>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Messages -->
         <?php if (isset($_SESSION['error'])): ?>
-            <div class="bg-red-500 text-white p-4 rounded-md mb-4">
+            <div class="bg-red-900 text-red-100 p-6 rounded-3xl mb-6">
                 <?= htmlspecialchars($_SESSION['error']) ?>
             </div>
-            <?php unset($_SESSION['error']); // Clear error message after displaying ?>
+            <?php unset($_SESSION['error']); ?>
         <?php endif; ?>
 
-        <!-- Display success message -->
         <?php if (isset($_SESSION['success'])): ?>
-            <div class="bg-green-500 text-white p-4 rounded-md mb-4">
+            <div class="bg-green-900 text-green-100 p-6 rounded-3xl mb-6">
                 <?= htmlspecialchars($_SESSION['success']) ?>
             </div>
-            <?php unset($_SESSION['success']); // Clear success message after displaying ?>
+            <?php unset($_SESSION['success']); ?>
         <?php endif; ?>
-        <div class="mb-4">
-            <h4 class="text-lg font-semibold">Your Balance: ₹<?= number_format($userBalance, 2) ?></h4>
-        </div>
+
         <!-- Schedule Form -->
-        <div id="scheduleForm" class="bg-white rounded-xl shadow-lg p-8" style="display: none;">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">Create Schedule</h2>
-                <span id="selectedGymName" class="text-blue-600 font-semibold"></span>
+        <div id="scheduleForm" class="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-3xl overflow-hidden hidden">
+            <div class="p-6 bg-gradient-to-r from-yellow-400 to-yellow-500">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900">Create Schedule</h2>
+                    <span id="selectedGymName" class="text-gray-900 font-semibold"></span>
+                </div>
             </div>
 
-            <form action="process_schedule.php" method="POST" class="space-y-6">
-    <input type="hidden" name="membership_id" id="selectedMembershipId">
-    <input type="hidden" name="gym_id" id="selectedGymId">
+            <form action="process_schedule.php" method="POST" class="p-6 space-y-6">
+                <input type="hidden" name="membership_id" id="selectedMembershipId">
+                <input type="hidden" name="gym_id" id="selectedGymId">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Start Date</label>
-                        <input type="date" name="start_date" required
-                            class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    </div>
+    <div class="space-y-2">
+        <label class="text-white  dark:text-yellow-400 text-sm">Start Date</label>
+        <input type="date" name="start_date" required
+            class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white px-4 py-3 focus:ring-2 focus:ring-yellow-400">
+    </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">End Date</label>
-                        <input type="date" name="end_date" required
-                            class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    </div>
+    <div class="space-y-2">
+        <label class="text-white  dark:text-yellow-400 text-sm">End Date</label>
+        <input type="date" name="end_date" required
+            class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white px-4 py-3 focus:ring-2 focus:ring-yellow-400">
+    </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Time Slot</label>
-                        <select name="time_slot" required
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <?php foreach ($timeSlots as $time):
-                                $currentOccupancy = $occupancyByTime[$time] ?? 0;
-                                $available = 50 - $currentOccupancy;
-                                $isSlotFull = $currentOccupancy >= 50;
-                                $formattedTime = date('g:i A', strtotime($time));
-                                ?>
-                                <option value="<?= $time ?>" <?= $isSlotFull ? 'disabled' : '' ?>>
-                                    <?= $formattedTime ?> (<?= $available ?> spots available)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+    <div class="space-y-2">
+        <label class="text-white  dark:text-yellow-400 text-sm">Time Slot</label>
+        <select name="time_slot" required
+            class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-xl 
+                   text-gray-900 dark:text-white px-4 py-3 focus:ring-2 focus:ring-yellow-400">
+            <?php foreach ($timeSlots as $time):
+                $currentOccupancy = $occupancyByTime[$time] ?? 0;
+                $available = 50 - $currentOccupancy;
+                $isSlotFull = $currentOccupancy >= 50;
+                $formattedTime = date('g:i A', strtotime($time));
+            ?>
+                <option value="<?= $time ?>" <?= $isSlotFull ? 'disabled' : '' ?>>
+                    <?= $formattedTime ?> (<?= $available ?> spots available)
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
 
-                    </div>
+    <div class="space-y-2">
+        <label class="text-white  dark:text-yellow-400 text-sm">Activity Type</label>
+        <select name="activity_type" required
+            class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-xl 
+                   text-gray-900 dark:text-white px-4 py-3 focus:ring-2 focus:ring-yellow-400">
+            <option value="gym_visit">General Workout</option>
+            <option value="class">Class Session</option>
+            <option value="personal_training">Personal Training</option>
+        </select>
+    </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Activity Type</label>
-                        <select name="activity_type" required
-                            class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                            <option value="gym_visit">General Workout</option>
-                            <option value="class">Class Session</option>
-                            <option value="personal_training">Personal Training</option>
-                        </select>
-                    </div>
-                </div>
+    <div class="space-y-2">
+        <label class="text-white  dark:text-yellow-400 text-sm">Schedule Type</label>
+        <select name="recurring" id="recurringSelect"
+            class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-xl 
+                   text-gray-900 dark:text-white px-4 py-3 focus:ring-2 focus:ring-yellow-400">
+            <option value="daily">Daily</option>
+            <option value="none">Today Only</option>
+            <option value="weekly">Weekly</option>
+        </select>
+    </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Schedule Type</label>
-                    <select name="recurring" id="recurringSelect"
-                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                        <option value="none">Today Only</option>
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                    </select>
-                </div>
+    <div id="daysSelection" class="hidden space-y-2">
+        <label class="text-white  dark:text-yellow-400 text-sm">Select Days</label>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <?php foreach (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day): ?>
+                <label class="inline-flex items-center">
+                    <input type="checkbox" name="days[]" value="<?= strtolower($day) ?>"
+                        class="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 
+                               text-yellow-400 focus:ring-yellow-400">
+                    <span class="ml-2 text-gray-700 dark:text-white"><?= $day ?></span>
+                </label>
+            <?php endforeach; ?>
+        </div>
+    </div>
 
-                <div id="daysSelection" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Days</label>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <?php foreach (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $day): ?>
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" name="days[]" value="<?= strtolower($day) ?>"
-                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                <span class="ml-2"><?= $day ?></span>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Notes</label>
-                    <textarea name="notes" rows="3"
-                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Add any notes or special requests for your workout session"></textarea>
-                </div>
+    <div class="space-y-2">
+        <label class="text-white  dark:text-yellow-400 text-sm">Notes</label>
+        <textarea name="notes" rows="3"
+            class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-xl 
+                   text-gray-900 dark:text-white px-4 py-3 focus:ring-2 focus:ring-yellow-400"
+            placeholder="Add any notes or special requests for your workout session"></textarea>
+    </div>
+</div>
+
 
                 <button type="submit"
-                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all">
+                    class="w-full bg-yellow-400 text-black px-6 py-3 rounded-full font-bold hover:bg-yellow-500 transform hover:scale-105 transition-all duration-300">
                     Create Schedule
                 </button>
             </form>
         </div>
     </div>
 </div>
+
 
 <script>
 
@@ -245,13 +268,13 @@ include 'includes/navbar.php';
     });
 
     function selectMembership(membershipId, gymName) {
-    const memberships = <?php echo json_encode($memberships); ?>;
-    const selectedMembership = memberships.find(m => m.membership_id == membershipId);
-    
-    // Set form values
-    document.getElementById('selectedMembershipId').value = membershipId;
-    document.getElementById('selectedGymId').value = selectedMembership.gym_id;
-    document.getElementById('selectedGymName').textContent = gymName;
+        const memberships = <?php echo json_encode($memberships); ?>;
+        const selectedMembership = memberships.find(m => m.membership_id == membershipId);
+
+        // Set form values
+        document.getElementById('selectedMembershipId').value = membershipId;
+        document.getElementById('selectedGymId').value = selectedMembership.gym_id;
+        document.getElementById('selectedGymName').textContent = gymName;
 
         // Set date inputs with membership dates
         document.querySelector('input[name="start_date"]').value = selectedMembership.start_date;

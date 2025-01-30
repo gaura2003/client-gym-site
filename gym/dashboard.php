@@ -15,7 +15,9 @@ $owner_id = $_SESSION['owner_id'];
 $stmt = $conn->prepare("SELECT * FROM gyms WHERE owner_id = ?");
 $stmt->execute([$owner_id]);
 $gym = $stmt->fetch(PDO::FETCH_ASSOC);
-$gym_id = $gym['gym_id'];
+
+$gym_id = ($gym && isset($gym['gym_id'])) ? $gym['gym_id'] : null;
+
 
 // Analytics Data
 $analytics = [
@@ -227,10 +229,32 @@ $stmt = $conn->prepare("
 $stmt->execute([$gym_id]);
 $ageDemo = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+if (!$gym): ?>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.10.2/dist/cdn.min.js" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <div class="min-h-screen bg-gray-100 py-12">
+        <div class="max-w-3xl mx-auto px-4">
+            <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                <h1 class="text-2xl font-bold mb-4">Welcome to Gym Management System</h1>
+                <p class="text-gray-600 mb-6">Let\'s get started by setting up your gym profile.</p>
+
+                <div class="space-y-4">
+                    <svg class="w-64 h-64 mx-auto text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <a href="add gym.php"
+                        class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200">
+                        Create Your Gym Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php else:
 include '../includes/navbar.php';
-
-if ($gym): ?>
-
+?>
 <div class="container mx-auto px-4 py-8">
     <!-- Header Section -->
     <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
@@ -242,7 +266,7 @@ if ($gym): ?>
                     </div>
                     <div>
                         <h1 class="text-2xl font-bold text-white"><?php echo htmlspecialchars($gym['name']); ?></h1>
-                        <p class="text-gray-300">Dashboard Overview</p>
+                        <p class="text-white ">Dashboard Overview</p>
                     </div>
                 </div>
                 <div class="text-white text-right">
@@ -399,7 +423,7 @@ if ($gym): ?>
                         <p class="font-medium"><?= htmlspecialchars($review['username']) ?></p>
                         <div class="flex items-center">
                             <?php for ($i = 0; $i < 5; $i++): ?>
-                                <i class="fas fa-star <?= $i < $review['rating'] ? 'text-yellow-500' : 'text-gray-300' ?>"></i>
+                                <i class="fas fa-star <?= $i < $review['rating'] ? 'text-yellow-500' : 'text-white ' ?>"></i>
                             <?php endfor; ?>
                         </div>
                     </div>
@@ -554,26 +578,5 @@ if ($gym): ?>
     </div>
 </div>
 
-
-<?php else: ?>
-
-    <div class="min-h-screen bg-gray-100 py-12">
-        <div class="max-w-3xl mx-auto px-4">
-            <div class="bg-white rounded-lg shadow-lg p-8 text-center">
-                <h1 class="text-2xl font-bold mb-4">Welcome to Gym Management System</h1>
-                <p class="text-gray-600 mb-6">Let\'s get started by setting up your gym profile.</p>
-
-                <div class="space-y-4">
-                    <svg class="w-64 h-64 mx-auto text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    <a href="add gym.php"
-                        class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200">
-                        Create Your Gym Profile
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
+  
 <?php endif; ?>

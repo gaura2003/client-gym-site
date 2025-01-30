@@ -155,7 +155,7 @@ $amenities = $stmt->fetchAll(PDO::FETCH_COLUMN);
                         $rating = round($gym['avg_rating'] ?? 0);
                         for ($i = 1; $i <= 5; $i++): 
                         ?>
-                            <svg class="h-5 w-5 <?php echo $i <= $rating ? 'text-yellow-400' : 'text-gray-300'; ?> fill-current" 
+                            <svg class="h-5 w-5 <?php echo $i <= $rating ? 'text-yellow-400' : 'text-white '; ?> fill-current" 
                                  viewBox="0 0 20 20">
                                 <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
                             </svg>

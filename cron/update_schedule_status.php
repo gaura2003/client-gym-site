@@ -34,16 +34,6 @@ function updateSchedulesHourly($pdo) {
         $creditStmt = $pdo->prepare($creditQuery);
         $creditStmt->execute([':dailyRate' => $dailyRate, ':gymId' => $gymId]);
 
-        // Log the payment (optional, assumes a payments table for records)
-        $logQuery = "INSERT INTO payments (id, gym_id, user_id, amount, payment_date) VALUES (:scheduleId, :gymId, :userId, :amount, :paymentDate)";
-        $logStmt = $pdo->prepare($logQuery);
-        $logStmt->execute([
-            ':scheduleId' => $scheduleId,
-            ':gymId' => $gymId,
-            ':userId' => $userId,
-            ':amount' => $dailyRate,
-            ':paymentDate' => $currentTime
-        ]);
     }
 
     echo "Schedules updated successfully.";

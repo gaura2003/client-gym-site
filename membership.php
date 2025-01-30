@@ -22,81 +22,94 @@ $stmt->execute([$user_id]);
 $membership = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 sm:px-6 lg:px-8">
     <?php if ($membership): ?>
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">Your Membership</h2>
-                <span class="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-full">
-                    Active
-                </span>
+        <div
+            class="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-3xl overflow-hidden transform hover:scale-[1.02] transition-all duration-300">
+            <!-- Header Section -->
+            <div class="p-6 bg-gradient-to-r from-yellow-400 to-yellow-500">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900">Your Membership</h2>
+                    <span class="px-4 py-1 rounded-full text-sm font-medium bg-green-900 text-green-100">
+                        Active
+                    </span>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <div class="space-y-3">
-                        <p class="text-gray-700"><span class="font-medium">Plan:</span> <?php echo htmlspecialchars($membership['plan_name']); ?></p>
-                        <p class="text-gray-700"><span class="font-medium">Duration:</span> <?php echo htmlspecialchars($membership['duration']); ?></p>
-                        <p class="text-gray-700"><span class="font-medium">Start Date:</span> <?php echo date('F j, Y', strtotime($membership['start_date'])); ?></p>
-                        <p class="text-gray-700"><span class="font-medium">End Date:</span> <?php echo date('F j, Y', strtotime($membership['end_date'])); ?></p>
-                        <p class="text-gray-700"><span class="font-medium">Gym:</span> <?php echo htmlspecialchars($membership['gym_name']); ?></p>
-                        <p class="text-gray-700"><span class="font-medium">Location:</span> <?php echo htmlspecialchars($membership['address']); ?></p>
+            <!-- Details Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
+                <div class="space-y-4">
+                    <div class="bg-gray-700 rounded-xl p-4">
+                        <p class="text-yellow-400 text-sm">Plan</p>
+                        <p class="text-lg font-semibold text-white">
+                            <?php echo htmlspecialchars($membership['plan_name']); ?>
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-700 rounded-xl p-4">
+                        <p class="text-yellow-400 text-sm">Duration</p>
+                        <p class="text-lg font-semibold text-white">
+                            <?php echo htmlspecialchars($membership['duration']); ?>
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-700 rounded-xl p-4">
+                        <p class="text-yellow-400 text-sm">Validity</p>
+                        <div class="space-y-1">
+                            <p class="text-white">
+                                <i class="fas fa-calendar-alt text-yellow-400 mr-2"></i>
+                                Start: <?php echo date('F j, Y', strtotime($membership['start_date'])); ?>
+                            </p>
+                            <p class="text-white">
+                                <i class="fas fa-calendar-check text-yellow-400 mr-2"></i>
+                                End: <?php echo date('F j, Y', strtotime($membership['end_date'])); ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-700 rounded-xl p-4">
+                        <p class="text-yellow-400 text-sm">Gym Details</p>
+                        <p class="text-lg font-semibold text-white">
+                            <?php echo htmlspecialchars($membership['gym_name']); ?>
+                        </p>
+                        <p class="text-white ">
+                            <?php echo htmlspecialchars($membership['address']); ?>
+                        </p>
                     </div>
                 </div>
-                <div>
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800">Inclusions</h3>
-                    <ul class="list-disc list-inside space-y-2 text-gray-700">
-                        <?php
-                        $inclusions = explode(',', $membership['inclusions']);
-                        foreach ($inclusions as $inclusion): ?>
-                            <li><?php echo htmlspecialchars(trim($inclusion)); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
+
+                <div class="space-y-6">
+                    <div class="bg-gray-700 rounded-xl p-6">
+                        <h3 class="text-xl font-semibold text-white mb-4">Plan Inclusions</h3>
+                        <ul class="space-y-3">
+                            <?php foreach (explode(',', $membership['inclusions']) as $inclusion): ?>
+                                <li class="flex items-center text-white">
+                                    <i class="fas fa-check-circle text-yellow-400 mr-3"></i>
+                                    <?php echo htmlspecialchars(trim($inclusion)); ?>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
-            <?php
-            // Check for existing schedule
-            $scheduleStmt = $conn->prepare("
-                SELECT id FROM schedules 
-                WHERE user_id = ? AND membership_id = ? AND status = 'scheduled'
-            ");
-            $scheduleStmt->execute([$user_id, $membership['id']]);
-            $existingSchedule = $scheduleStmt->fetch(PDO::FETCH_ASSOC);
-            ?>
+            <!-- Action Buttons -->
+            <div class="p-6 bg-gray-700 flex flex-col sm:flex-row gap-4 justify-center">
 
-            <div class="col-span-2 mt-6 flex flex-col sm:flex-row gap-4 justify-center">
-                <?php if ($existingSchedule): ?>
-                    <a href="schedule.php?gym_id=<?php echo $membership['gym_id']; ?>&edit_id=<?php echo $existingSchedule['id']; ?>"
-                       class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center shadow-md transition">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Update Schedule
-                    </a>
-                <?php else: ?>
-                    <a href="schedule.php?gym_id=<?php echo $membership['gym_id']; ?>"
-                       class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center shadow-md transition">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Schedule Workout
-                    </a>
-                <?php endif; ?>
+                <a href="schedule.php?gym_id=<?php echo $membership['gym_id']; ?>"
+                    class="inline-flex items-center justify-center px-6 py-3 bg-yellow-400 hover:bg-yellow-500 text-black rounded-full font-bold transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-plus mr-2"></i>
+                    Schedule Workout
+                </a>
 
                 <a href="user_schedule.php"
-                   class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 flex items-center shadow-md transition">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
+                    class="inline-flex items-center justify-center px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-full font-bold transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-calendar-alt mr-2"></i>
                     View My Schedule
                 </a>
             </div>
         </div>
-    <?php else: 
-    include 'gym.php';
+    <?php else:
+        include 'gym.php';
     endif; ?>
 </div>

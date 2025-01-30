@@ -57,7 +57,7 @@ include '../includes/navbar.php';
                     </div>
                     <div>
                         <h1 class="text-2xl font-bold text-white">Visit Attendance</h1>
-                        <p class="text-gray-300"><?php echo date('l, F j, Y'); ?></p>
+                        <p class="text-white "><?php echo date('l, F j, Y'); ?></p>
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
@@ -136,7 +136,7 @@ include '../includes/navbar.php';
                         <tr>
                             <td colspan="5" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center">
-                                    <i class="fas fa-calendar-times text-4xl text-gray-300 mb-4"></i>
+                                    <i class="fas fa-calendar-times text-4xl text-white  mb-4"></i>
                                     <p class="text-gray-500">No visits scheduled for today</p>
                                 </div>
                             </td>

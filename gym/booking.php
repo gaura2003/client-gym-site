@@ -95,7 +95,7 @@ include '../includes/navbar.php';
                 </div>
                 <div>
                     <h1 class="text-2xl font-bold text-white">Schedules</h1>
-                    <p class="text-gray-300"><?php echo date('l, F j, Y'); ?></p>
+                    <p class="text-white "><?php echo date('l, F j, Y'); ?></p>
                 </div>
             </div>
         </div>
@@ -157,7 +157,7 @@ include '../includes/navbar.php';
             </div>
         <?php else: ?>
             <div class="text-center py-12">
-                <div class="h-24 w-24 mx-auto mb-6 text-gray-300">
+                <div class="h-24 w-24 mx-auto mb-6 text-white ">
                     <i class="fas fa-calendar-times text-6xl"></i>
                 </div>
                 <h3 class="text-xl font-medium text-gray-900 mb-2">No Schedules Today</h3>
@@ -200,7 +200,7 @@ include '../includes/navbar.php';
             </div>
         <?php else: ?>
             <div class="text-center py-12">
-                <div class="h-24 w-24 mx-auto mb-6 text-gray-300">
+                <div class="h-24 w-24 mx-auto mb-6 text-white ">
                     <i class="fas fa-calendar-times text-6xl"></i>
                 </div>
                 <h3 class="text-xl font-medium text-gray-900 mb-2">No Schedules Tomorrow</h3>

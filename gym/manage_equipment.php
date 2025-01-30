@@ -105,7 +105,7 @@ include '../includes/navbar.php';
                     </div>
                     <div>
                         <h1 class="text-2xl font-bold text-white">Gym Equipment</h1>
-                        <p class="text-gray-300">Manage your gym's equipment inventory</p>
+                        <p class="text-white ">Manage your gym's equipment inventory</p>
                     </div>
                 </div>
                 <button onclick="openAddModal()" 

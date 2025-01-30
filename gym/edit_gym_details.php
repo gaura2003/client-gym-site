@@ -186,7 +186,7 @@ include '../includes/navbar.php';
                     </div>
                     <div>
                         <h1 class="text-2xl font-bold text-white"><?php echo htmlspecialchars($gym['name']); ?></h1>
-                        <p class="text-gray-300"><?php echo htmlspecialchars($gym['address']); ?></p>
+                        <p class="text-white "><?php echo htmlspecialchars($gym['address']); ?></p>
                     </div>
                 </div>
                 <span class="px-4 py-2 rounded-full bg-green-500 text-white font-semibold">

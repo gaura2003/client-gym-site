@@ -37,59 +37,75 @@ $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 include 'includes/navbar.php';
 ?>
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">Your Payment History</h1>
+<div class="min-h-screen bg-gradient-to-b from-gray-900 to-black py-12 sm:py-16 lg:py-20">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-3xl font-bold text-white mb-8 text-center">Payment History</h1>
 
-    <?php if (empty($payments)): ?>
-        <div class="text-center text-gray-500 text-lg">
-            No payment history found. Start your fitness journey today!
-        </div>
-    <?php else: ?>
-        <div class="space-y-6">
-            <?php foreach ($payments as $payment): ?>
-                <div class="bg-white shadow-md rounded-lg overflow-hidden">
-                    <!-- Header Section -->
-                    <div class="p-4 bg-blue-600 text-white">
-                        <h2 class="text-lg font-semibold">
-                            <?php echo htmlspecialchars($payment['gym_name']); ?>
-                        </h2>
-                        <p class="text-sm">
-                            Paid on: <?php echo date('M j, Y', strtotime($payment['payment_date'])); ?>
-                        </p>
-                    </div>
-
-                    <!-- Details Section -->
-                    <div class="p-4 space-y-4">
-                        <!-- Plan and Duration -->
-                        <div class="flex justify-between items-center">
-                            <p class="text-sm font-medium text-gray-600">
-                                <span class="font-bold">Plan:</span> <?php echo htmlspecialchars($payment['plan_name']); ?>
-                            </p>
-                            <p class="text-sm font-medium text-gray-600">
-                                <span class="font-bold">Duration:</span> <?php echo htmlspecialchars($payment['duration']); ?>
-                            </p>
-                        </div>
-                        <p class="text-xs text-gray-500">
-                            <?php echo date('M j, Y', strtotime($payment['start_date'])); ?> - 
-                            <?php echo date('M j, Y', strtotime($payment['end_date'])); ?>
-                        </p>
-
-                        <!-- Amount -->
-                        <div class="flex justify-between items-center">
-                            <p class="text-lg font-bold text-gray-800">
-                                ₹<?php echo number_format($payment['amount'], 2); ?>
-                            </p>
-                            <!-- Status Badge -->
-                            <span class="px-3 py-1 text-xs font-medium rounded-full 
-                                <?php echo $payment['status'] === 'completed' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-red-100 text-red-800'; ?>">
-                                <?php echo ucfirst($payment['status']); ?>
-                            </span>
-                        </div>
-                    </div>
+        <?php if (empty($payments)): ?>
+            <div class="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-3xl p-8 text-center">
+                <div class="text-yellow-400 text-lg">
+                    No payment history found. Start your fitness journey today!
                 </div>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
+            </div>
+        <?php else: ?>
+            <div class="space-y-6">
+                <?php foreach ($payments as $payment): ?>
+                    <div class="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-3xl overflow-hidden transform hover:scale-[1.02] transition-transform duration-300">
+                        <!-- Header Section -->
+                        <div class="p-6 bg-gradient-to-r from-yellow-400 to-yellow-500">
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-xl font-bold text-gray-900">
+                                    <?php echo htmlspecialchars($payment['gym_name']); ?>
+                                </h2>
+                                <span class="px-4 py-1 rounded-full text-sm font-medium
+                                    <?php echo $payment['status'] === 'completed' 
+                                        ? 'bg-green-900 text-green-100' 
+                                        : 'bg-red-900 text-red-100'; ?>">
+                                    <?php echo ucfirst($payment['status']); ?>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Details Section -->
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="text-yellow-400 text-sm">Plan Details</label>
+                                        <p class="text-white text-lg font-medium">
+                                            <?php echo htmlspecialchars($payment['plan_name']); ?> - 
+                                            <?php echo htmlspecialchars($payment['duration']); ?>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label class="text-yellow-400 text-sm">Membership Period</label>
+                                        <p class="text-white">
+                                            <?php echo date('d M Y', strtotime($payment['start_date'])); ?> - 
+                                            <?php echo date('d M Y', strtotime($payment['end_date'])); ?>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="text-yellow-400 text-sm">Payment Date</label>
+                                        <p class="text-white">
+                                            <?php echo date('d M Y', strtotime($payment['payment_date'])); ?>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label class="text-yellow-400 text-sm">Amount Paid</label>
+                                        <p class="text-2xl font-bold text-white">
+                                            ₹<?php echo number_format($payment['amount'], 2); ?>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
+
+<?php include 'includes/footer.php'; ?>

@@ -3,6 +3,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $role = $_SESSION['role'] ?? '';
 $isLoggedIn = isset($_SESSION['user_id']) || isset($_SESSION['owner_id']);
 $user_id = $_SESSION['user_id'] ?? ($_SESSION['owner_id'] ?? null);
+$username = isset($_SESSION['username']) ? $_SESSION['username'] : '';
 
 class NavbarDatabase
 {
@@ -134,6 +135,71 @@ if ($isLoggedIn) {
                 transform: rotate(360deg);
             }
         }
+
+        :root {
+    --bg-primary: #111827;
+    --bg-secondary: #1F2937;
+    --text-primary: #FFFFFF;
+    --text-secondary: #E5E7EB;
+    --bg-tertiary:#374151;
+    --accent: #FBBF24;
+}
+
+:root.light-mode {
+    --bg-primary: #F3F4F6;
+    --bg-secondary: #FFFFFF;
+    --text-primary: #111827;
+    --bg-tertiary: #F9FAFB;
+    --text-secondary: #374151;
+    --accent: #D97706;
+}
+
+.bg-gray-700 {
+    background-color: var(--bg-tertiary);
+}
+/* Core theme classes */
+.from-gray-900 {
+    --tw-gradient-from: var(--bg-primary);
+}
+
+.to-black {
+    --tw-gradient-to: var(--bg-secondary);
+}
+
+.bg-gray-800 {
+    background-color: var(--bg-secondary);
+}
+
+.text-white {
+    color: var(--text-primary);
+}
+
+.text-gray-500 {
+    color: var(--text-secondary);
+}
+
+.text-yellow-400 {
+    color: var(--accent);
+}
+
+/* Additional theme utilities */
+.bg-opacity-50 {
+    --tw-bg-opacity: 0.5;
+}
+
+.backdrop-blur-lg {
+    --tw-backdrop-blur: blur(16px);
+}
+
+.transition-colors {
+    transition-property: color, background-color, border-color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+}
+.hover\:bg-gray-700:hover {
+    --tw-bg-opacity: 0.7;
+}
+
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -149,11 +215,28 @@ if ($isLoggedIn) {
             });
         });
 
+        // toggle theme
+        function initTheme() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.classList.toggle('light-mode', theme === 'light');
+            return theme;
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.classList.contains('light-mode') ? 'dark' : 'light';
+            localStorage.setItem('theme', currentTheme);
+            document.documentElement.classList.toggle('light-mode');
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        });
     </script>
+    
 
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100 transition-colors duration-200">
     <!-- Loader -->
     <div class="loader-container">
         <div class="gym-loader">
@@ -166,95 +249,59 @@ if ($isLoggedIn) {
         </div>
     </div>
     <!-- Navbar -->
-    <nav x-data="{ open: false }" class="bg-gradient-to-r from-gray-800 via-gray-700 to-gray-900 shadow-lg">
+    <nav class="bg-gray-800 bg-opacity-50 backdrop-blur-lg fixed w-full z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
                 <div class="flex items-center">
                     <a href="/gym" class="text-white font-bold text-2xl">
                         <span class="text-yellow-400">GYM</span> PRO
                     </a>
                 </div>
+
+                <!-- Desktop Navigation Links -->
                 <div class="hidden md:block">
                     <div class="ml-10 flex items-baseline space-x-4">
                         <?php if ($role === 'admin'): ?>
-                            <a href="/gym/admin/dashboard.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Dashboard</a>
-                            <a href="/gym/admin/members.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Members</a>
-                            <a href="/gym/admin/users.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Users</a>
-                            <a href="/gym/admin/gym-owners.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">
-                                Owners</a>
-                            <a href="/gym/admin/manage_gym.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Gyms</a>
-                            <a href="/gym/admin/reviews.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Reviews</a>
-                            <a href="/gym/admin/membership_plans.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Plans</a>
-                            <a href="/gym/admin/see-gym-earn.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Gym Earnings</a>
-                            <a href="/gym/admin/cut-off-chart.php"
-                                class="text-gray-300 hover:text-yellow-400 px- py-2 rounded-md text-lg font-medium">Cut Offs</a>
+                            <a href="/gym/admin/dashboard.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Dashboard</a>
+                            <a href="/gym/admin/members.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Members</a>
+                            <a href="/gym/admin/users.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Users</a>
+                            <a href="/gym/admin/gym-owners.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Owners</a>
+                            <a href="/gym/admin/manage_gym.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Gyms</a>
+                            <a href="/gym/admin/reviews.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Reviews</a>
+                            <a href="/gym/admin/membership_plans.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Plans</a>
+                            <a href="/gym/admin/see-gym-earn.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Gym Earnings</a>
+                            <a href="/gym/admin/cut-off-chart.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Cut Offs</a>
                         <?php elseif ($role === 'member' && isset($_SESSION['user_id'])): ?>
-                            <a href="/gym/dashboard.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Dashboard</a>
-                            <a href="/gym/schedule-history.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Schedule
-                                History</a>
-                            <a href="/gym/user_schedule.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">My
-                                Schedules</a>
-                            <a href="/gym/view_membership.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Membership</a>
-                            <a href="/gym/payment_history.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Payment
-                                History</a>
-                            <a href="/gym/profile.php"
-                                class="text-gray-300 hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Profile</a>
+                            <a href="/gym/dashboard.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Dashboard</a>
+                            <a href="/gym/schedule-history.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Schedule History</a>
+                            <a href="/gym/user_schedule.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">My Schedules</a>
+                            <a href="/gym/view_membership.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Membership</a>
+                            <a href="/gym/payment_history.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Payment History</a>
+                            <a href="/gym/profile.php" class="text-white  hover:text-yellow-400 px-1 py-2 rounded-md text-lg font-medium">Profile</a>
                         <?php elseif (isset($_SESSION['owner_id'])): ?>
-                            <a href="../gym/dashboard.php"
-                                class="text-gray-300 hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Dashboard</a>
-                            <a href="../gym/edit_gym_details.php"
-                                class="text-gray-300 hover:text-yellow-400 py-2 rounded-md text-lg font-medium">My
-                                Gym</a>
-                            <a href="../gym/manage_membership_plans.php"
-                                class="text-gray-300 hover:text-yellow-400 py-2 rounded-md text-lg font-medium">
-                                Plans</a>
-                            <a href="../gym/manage_equipment.php"
-                                class="text-gray-300 hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Equipment</a>
-                            <a href="../gym/booking.php"
-                                class="text-gray-300 hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Schedules</a>
-                            <a href="../gym/member_list.php"
-                                class="text-gray-300 hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Members</a>
-                            <a href="../gym/earning-history.php"
-                                class="text-gray-300 hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Earn
-                                History</a>
-                            <a href="../gym/visit_attendance.php"
-                                class="text-gray-300 hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Visit
-                                History</a>
+                            <a href="../gym/dashboard.php" class="text-white  hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Dashboard</a>
+                            <a href="../gym/edit_gym_details.php" class="text-white  hover:text-yellow-400 py-2 rounded-md text-lg font-medium">My Gym</a>
+                            <a href="../gym/manage_membership_plans.php" class="text-white  hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Plans</a>
+                            <a href="../gym/manage_equipment.php" class="text-white  hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Equipment</a>
+                            <a href="../gym/booking.php" class="text-white  hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Schedules</a>
+                            <a href="../gym/member_list.php" class="text-white  hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Members</a>
+                            <a href="../gym/earning-history.php" class="text-white  hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Earnings</a>
+                            <a href="../gym/visit_attendance.php" class="text-white  hover:text-yellow-400 py-2 rounded-md text-lg font-medium">Visits</a>
                         <?php else: ?>
-                            <a href="/gym/"
-                                class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Home</a>
-                            <a href="/gym/view_membership.php"
-                                class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Membership
-                                Plans</a>
-                            <a href="/gym/contact.php"
-                                class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Contact</a>
-                            <a href="/gym/about-us.php"
-                                class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">About
-                                Us</a>
-
+                            <a href="/gym/" class="text-white  hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Home</a>
+                            <a href="/gym/view_membership.php" class="text-white  hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Membership Plans</a>
+                            <a href="/gym/contact.php" class="text-white  hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Contact</a>
+                            <a href="/gym/about-us.php" class="text-white  hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">About Us</a>
                         <?php endif; ?>
                     </div>
                 </div>
-                <!-- Right Section with Notifications and Profile -->
+
+                <!-- Right Section -->
                 <div class="hidden md:flex items-center space-x-6">
                     <?php if ($isLoggedIn): ?>
-                        <!-- Notifications -->
                         <div class="relative">
-                            <a href="<?php echo isset($_SESSION['owner_id']) ? '/gym/gym/notifications.php' : '/gym/notifications.php'; ?>"
-                                class="text-gray-300 hover:text-yellow-500 transition-all duration-200">
+                            <a href="<?php echo isset($_SESSION['owner_id']) ? '/gym/gym/notifications.php' : '/gym/notifications.php'; ?>" class="text-white  hover:text-yellow-500 transition-all duration-200">
                                 <i class="fas fa-bell text-xl"></i>
                                 <?php if ($unreadNotificationsCount > 0): ?>
                                     <span class="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded-full">
@@ -264,100 +311,129 @@ if ($isLoggedIn) {
                             </a>
                         </div>
 
-                        <!-- User Profile -->
                         <div class="flex items-center space-x-3">
-                            <span class="text-gray-300 font-medium">
+                            <span class="text-white  font-medium">
                                 <i class="fas fa-user-circle text-yellow-500 mr-2"></i>
-                                <?php echo htmlspecialchars($_SESSION['username']); ?>
+                                <?php echo $username; ?>
                             </span>
-                            <a href="/gym/includes/logout.php"
-                                class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                            <a href="/gym/includes/logout.php" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
                                 <i class="fas fa-sign-out-alt mr-2"></i>Logout
                             </a>
                         </div>
+
+                        <button id="themeToggle" class="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors duration-200">
+                            <svg class="hidden dark:block w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <svg class="block dark:hidden w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                        </button>
                     <?php else: ?>
-                        <a href="/gym/register.php"
-                            class="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 rounded-lg font-medium transition-colors duration-200">
-                            Sign Up
-                        </a>
-                        <a href="/gym/login.php"
-                            class="border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black px-6 py-2 rounded-lg font-medium transition-all duration-200">
-                            Login
-                        </a>
+                        <a href="/gym/register.php" class="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 rounded-lg font-medium transition-colors duration-200">Sign Up</a>
+                        <a href="/gym/login.php" class="border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black px-6 py-2 rounded-lg font-medium transition-all duration-200">Login</a>
                     <?php endif; ?>
                 </div>
+
+                <!-- Mobile menu button -->
                 <div class="-mr-2 flex md:hidden">
-                    <button @click="open = !open"
-                        class="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-md">
-                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 6h16M4 12h16m-7 6h7" />
+                    <button id="mobileMenuButton" class="text-white hover:text-white hover:bg-gray-700 p-2 rounded-md">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                         </svg>
                     </button>
                 </div>
             </div>
         </div>
-        <div x-show="open" class="md:hidden">
-            <div class="px-2 pt-2 pb-3 space-y-1 flex flex-col">
+
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="md:hidden fixed inset-0 z-50 bg-gray-900 bg-opacity-95 backdrop-blur-lg hidden">
+            <div class="pt-16 pb-6 px-4 space-y-6">
                 <?php if ($role === 'admin'): ?>
-                    <a href="/gym/admin/dashboard.php"
-                        class="block text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
-                    <a href="/gym/admin/members.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Members</a>
-                    <a href="/gym/admin/users.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Users</a>
-                    <a href="/gym/admin/gym-owners.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Gym
-                        Owners</a>
-                    <a href="/gym/admin/manage_gym.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Gyms</a>
-                    <a href="/gym/admin/reviews.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Reviews</a>
-                    <a href="/gym/admin/membership_plans.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Plans</a>
-                    <a href="/gym/admin/see-gym-earn.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Gym
-                        Earnings</a>
-                <?php elseif ($role === 'member'): ?>
-                    <a href="/gym/dashboard.php"
-                        class="block text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
-                    <a href="/gym/schedule-history.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Schedule
-                        History</a>
-                    <a href="/gym/user_schedule.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">My
-                        Schedules</a>
-                    <a href="/gym/view_membership.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Membership</a>
-                    <a href="/gym/payment_history.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Payment
-                        History</a>
-                    <a href="/gym/profile.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Profile</a>
-                <?php elseif ($role === 'owner'): ?>
-                    <a href="/gym/dashboard.php"
-                        class="block text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
-                    <a href="../gym/edit_gym_details.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">My
-                        Gyms</a>
-                    <a href="../gym/manage_equipment.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Equipment</a>
-                    <a href="../gym/bookings.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Schedules</a>
-                    <a href="../gym/member_list.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Members</a>
-                    <a href="../gym/earning-history.php"
-                        class="text-gray-300 hover:text-yellow-400 px-3 py-2 rounded-md text-lg font-medium">Earn
-                        History</a>
-                <?php endif; ?>
-                <?php if ($isLoggedIn): ?>
-                    <a href="/gym/includes/logout.php"
-                        class="block text-red-500 hover:bg-gray-700 px-3 py-2 rounded-md text-base font-medium">Logout</a>
+                    <div class="space-y-4">
+                        <a href="/gym/admin/dashboard.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Dashboard</a>
+                        <a href="/gym/admin/members.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Members</a>
+                        <a href="/gym/admin/users.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Users</a>
+                        <a href="/gym/admin/gym-owners.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Owners</a>
+                        <a href="/gym/admin/manage_gym.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Gyms</a>
+                        <a href="/gym/admin/reviews.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Reviews</a>
+                        <a href="/gym/admin/membership_plans.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Plans</a>
+                        <a href="/gym/admin/see-gym-earn.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Gym Earnings</a>
+                        <a href="/gym/admin/cut-off-chart.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Cut Offs</a>
+                    </div>
+                <?php elseif ($role === 'member' && isset($_SESSION['user_id'])): ?>
+                    <div class="space-y-4">
+                        <a href="/gym/dashboard.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Dashboard</a>
+                        <a href="/gym/schedule-history.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Schedule History</a>
+                        <a href="/gym/user_schedule.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">My Schedules</a>
+                        <a href="/gym/view_membership.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Membership</a>
+                        <a href="/gym/payment_history.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Payment History</a>
+                        <a href="/gym/profile.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Profile</a>
+                    </div>
+                <?php elseif (isset($_SESSION['owner_id'])): ?>
+                    <div class="space-y-4">
+                        <a href="../gym/dashboard.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Dashboard</a>
+                        <a href="../gym/edit_gym_details.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">My Gym</a>
+                        <a href="../gym/manage_membership_plans.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Plans</a>
+                        <a href="../gym/manage_equipment.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Equipment</a>
+                        <a href="../gym/booking.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Schedules</a>
+                        <a href="../gym/member_list.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Members</a>
+                        <a href="../gym/earning-history.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Earn History</a>
+                        <a href="../gym/visit_attendance.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Visit History</a>
+                    </div>
                 <?php else: ?>
-                    <a href="/gym/login.php"
-                        class="block text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-base font-medium">Login</a>
+                    <div class="space-y-4">
+                        <a href="/gym/" class="block text-white  hover:text-yellow-400 text-lg font-medium">Home</a>
+                        <a href="/gym/view_membership.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Membership Plans</a>
+                        <a href="/gym/contact.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">Contact</a>
+                        <a href="/gym/about-us.php" class="block text-white  hover:text-yellow-400 text-lg font-medium">About Us</a>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Mobile User Section -->
+                <?php if ($isLoggedIn): ?>
+                    <div class="pt-4 border-t border-gray-700">
+                        <a href="<?php echo isset($_SESSION['owner_id']) ? '/gym/gym/notifications.php' : '/gym/notifications.php'; ?>" class="flex items-center text-white  hover:text-yellow-400 mb-4">
+                            <i class="fas fa-bell text-xl mr-2"></i> Notifications
+                            <?php if ($unreadNotificationsCount > 0): ?>
+                                <span class="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                                    <?php echo $unreadNotificationsCount; ?>
+                                </span>
+                            <?php endif; ?>
+                        </a>
+
+                        <div class="flex items-center mb-4">
+                            <i class="fas fa-user-circle text-yellow-500 text-2xl mr-2"></i>
+                            <span class="text-white  font-medium"><?php echo $username; ?></span>
+                        </div>
+
+                        <button id="themeToggle" class="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors duration-200">
+                            <svg class="hidden dark:block w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <svg class="block dark:hidden w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                        </button>
+
+                        <a href="/gym/includes/logout.php" class="flex items-center text-red-400 hover:text-red-300">
+                            <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                        </a>
+                    </div>
+                <?php else: ?>
+                    <div class="pt-4 border-t border-gray-700 space-y-4">
+                        <a href="/gym/register.php" class="block w-full text-center bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 rounded-lg font-medium">Sign Up</a>
+                        <a href="/gym/login.php" class="block w-full text-center border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black px-6 py-2 rounded-lg font-medium">Login</a>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
     </nav>
+
+    <script>
+        // JavaScript for toggling mobile menu
+        document.getElementById('mobileMenuButton').addEventListener('click', function () {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('hidden'); // Toggle visibility
+        });
+    </script>

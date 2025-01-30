@@ -84,7 +84,7 @@ include '../includes/navbar.php';
                     </div>
                     <div>
                         <h1 class="text-2xl font-bold text-white">Earnings Dashboard</h1>
-                        <p class="text-gray-300"><?= htmlspecialchars($gym['name']) ?></p>
+                        <p class="text-white "><?= htmlspecialchars($gym['name']) ?></p>
                     </div>
                 </div>
                 <div class="text-white">
